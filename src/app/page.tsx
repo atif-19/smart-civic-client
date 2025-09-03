@@ -87,7 +87,7 @@ export default function ReportIssuePage() {
     setFeedback({ type: 'info', message: 'Submitting your report...' });
 
     try {
-      const response = await fetch('http://localhost:8000/api/reports', {
+      const response = await fetch('\${process.env.NEXT_PUBLIC_API_URL}/api/reports', {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}` 
