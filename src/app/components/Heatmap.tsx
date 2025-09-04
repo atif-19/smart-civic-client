@@ -1,40 +1,59 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useMap } from 'react-leaflet';
-import 'leaflet.heat'; // This imports the leaflet.heat library
-import L from 'leaflet';
+import { useEffect } from "react";
+import { useMap } from "react-leaflet";
+import "leaflet.heat";
+import L from "leaflet";
 
-// Define the type for the points prop
+// Type definitions for leaflet.heat
+interface HeatLayerOptions {
+  radius?: number;
+  blur?: number;
+  maxZoom?: number;
+  max?: number;
+  minOpacity?: number;
+  gradient?: Record<string, string>;
+}
+
+// Extend the Leaflet namespace to include heatLayer
+declare module "leaflet" {
+  function heatLayer(
+    latlngs: [number, number, number][],
+    options?: HeatLayerOptions
+  ): HeatLayer;
+
+  interface HeatLayer extends Layer {
+    setLatLngs(latlngs: [number, number, number][]): this;
+    addLatLng(latlng: [number, number, number]): this;
+    setOptions(options: HeatLayerOptions): this;
+    redraw(): this;
+  }
+}
+
 type HeatmapProps = {
   points: [number, number, number][];
 };
 
 const Heatmap = ({ points }: HeatmapProps) => {
-  const map = useMap(); // Get the map instance from the parent MapContainer
+  const map = useMap();
 
   useEffect(() => {
     if (!map || points.length === 0) return;
 
-    // Create the heat layer with the points
-    // The 'any' type is used here because the leaflet.heat types are not perfectly integrated
-    const heatLayer = (L as any).heatLayer(points, {
-      radius: 40,
-      blur: 25,
+    const heatLayer: L.HeatLayer = L.heatLayer(points, {
+      radius: 25,
+      blur: 15,
       maxZoom: 18,
     });
 
-    // Add the layer to the map
     map.addLayer(heatLayer);
 
-    // This is a cleanup function that React runs when the component is removed
-    // It ensures that when we update the data, the old layer is removed first.
     return () => {
       map.removeLayer(heatLayer);
     };
-  }, [map, points]); // Re-run this effect if the map or points change
+  }, [map, points]);
 
-  return null; // This component does not render any visible HTML itself
+  return null;
 };
 
 export default Heatmap;

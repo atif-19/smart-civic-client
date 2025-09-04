@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import Image from 'next/image';
 
-// Define a type for the report object for TypeScript
 interface Report {
   _id: string;
   category: string;
@@ -15,31 +15,27 @@ interface Report {
   createdAt: string;
 }
 
-// Dynamically import the Map component with SSR turned off
 const MapWithNoSSR = dynamic(() => import('../components/Map'), { 
   ssr: false,
   loading: () => <div className="flex items-center justify-center h-full w-full bg-gray-300">Loading Map...</div>
 });
 
 export default function AdminPage() {
+  const [reports, setReports] = useState<Report[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const [allReports, setAllReports] = useState<Report[]>([]);
-  const [filteredReports, setFilteredReports] = useState<Report[]>([]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [filteredReports, setFilteredReports] = useState<Report[]>([]);
 
-  // useEffect to fetch all data once on mount
   useEffect(() => {
     const fetchReports = async () => {
       try {
-        const response = await fetch('\${process.env.NEXT_PUBLIC_API_URL}/api/reports');
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reports`);
         if (!response.ok) throw new Error('Failed to fetch reports');
-        const data = await response.json();
-        setAllReports(data);
-        setFilteredReports(data);
-      } catch (err) {
+        const data: Report[] = await response.json();
+        setReports(data);
+      } catch {
         setError('Could not load reports.');
       } finally {
         setIsLoading(false);
@@ -48,41 +44,47 @@ export default function AdminPage() {
     fetchReports();
   }, []);
 
-  // useEffect to apply filters
   useEffect(() => {
-    let reports = [...allReports];
+    let reportList = reports ? [...reports] : [];
     if (statusFilter !== 'all') {
-      reports = reports.filter(report => report.status === statusFilter);
+      reportList = reportList.filter(report => report.status === statusFilter);
     }
     if (categoryFilter !== 'all') {
-      reports = reports.filter(report => report.category === categoryFilter);
+      reportList = reportList.filter(report => report.category === categoryFilter);
     }
-    setFilteredReports(reports);
-  }, [statusFilter, categoryFilter, allReports]);
+    setFilteredReports(reportList);
+  }, [statusFilter, categoryFilter, reports]);
 
-  // handleStatusChange function remains the same...
   const handleStatusChange = async (reportId: string, newStatus: Report['status']) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/reports/${reportId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reports/${reportId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
       if (!response.ok) throw new Error('Failed to update status');
       const updatedReport = await response.json();
-      setAllReports(currentReports =>
-        currentReports.map(report =>
+      setReports(currentReports =>
+        currentReports?.map(report =>
           report._id === reportId ? { ...report, status: updatedReport.status } : report
-        )
+        ) || []
       );
-    } catch (err) {
+    } catch {
       alert("Failed to update status.");
     }
   };
   
-  const getStatusColor = (status: Report['status']) => { /* ... unchanged ... */ };
+  const getStatusColor = (status: Report['status']) => {
+    switch (status) {
+      case 'submitted': return 'bg-yellow-200 text-yellow-800 border-yellow-300';
+      case 'acknowledged': return 'bg-blue-200 text-blue-800 border-blue-300';
+      case 'in_progress': return 'bg-indigo-200 text-indigo-800 border-indigo-300';
+      case 'resolved': return 'bg-green-200 text-green-800 border-green-300';
+      default: return 'bg-gray-200 text-gray-800 border-gray-300';
+    }
+  };
 
-  if (isLoading) return <div className="flex items-center justify-center h-screen">Loading reports...</div>;
+  if (isLoading || reports === null) return <div className="flex items-center justify-center h-screen">Loading reports...</div>;
   if (error) return <div className="flex items-center justify-center h-screen text-red-500">{error}</div>;
 
   return (
@@ -100,7 +102,6 @@ export default function AdminPage() {
         </div>
 
         <div className="flex space-x-4 mb-4 flex-shrink-0">
-          {/* --- STYLING FIX: Improved styling for filters --- */}
           <select 
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -127,13 +128,12 @@ export default function AdminPage() {
         </div>
 
         <div className="space-y-4 overflow-y-auto">
-          {/* --- LOGIC FIX: Re-added the full report card code --- */}
           {filteredReports.length > 0 ? (
             filteredReports.map((report) => {
-              const imageUrl = `http://localhost:8000/${report.imageUrl.replace(/\\/g, '/')}`;
+              const imageUrl = `${process.env.NEXT_PUBLIC_API_URL}/${report.imageUrl.replace(/\\/g, '/')}`;
               return (
                 <div key={report._id} className="bg-white p-4 rounded-lg shadow-md flex items-start space-x-4">
-                  <img src={imageUrl} alt={report.category} className="w-24 h-24 object-cover rounded-md" />
+                  <img src={imageUrl} alt={report.category} width={96} height={96} className="w-24 h-24 object-cover rounded-md" />
                   <div className="flex-1">
                      <span className="text-xs font-semibold bg-gray-200 text-gray-700 px-2 py-1 rounded-full">{report.category}</span>
                      <p className="mt-2 text-sm text-gray-800">{report.description}</p>
@@ -143,7 +143,7 @@ export default function AdminPage() {
                     <select
                       value={report.status}
                       onChange={(e) => handleStatusChange(report._id, e.target.value as Report['status'])}
-                      className={`text-xs text-black font-bold p-2 rounded-md border-2 appearance-none ${getStatusColor(report.status)}`}
+                      className={`text-xs font-bold p-2 rounded-md border-2 appearance-none ${getStatusColor(report.status)}`}
                     >
                       <option value="submitted">Submitted</option>
                       <option value="acknowledged">Acknowledged</option>
@@ -164,14 +164,3 @@ export default function AdminPage() {
     </main>
   );
 }
-
-// NOTE: The getStatusColor function was missing in the last update, please ensure it's in your code.
-const getStatusColor = (status: Report['status']) => {
-    switch (status) {
-      case 'submitted': return 'bg-yellow-200 text-yellow-800 border-yellow-300';
-      case 'acknowledged': return 'bg-blue-200 text-blue-800 border-blue-300';
-      case 'in_progress': return 'bg-indigo-200 text-indigo-800 border-indigo-300';
-      case 'resolved': return 'bg-green-200 text-green-800 border-green-300';
-      default: return 'bg-gray-200 text-gray-800 border-gray-300';
-    }
-};

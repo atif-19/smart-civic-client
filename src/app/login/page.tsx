@@ -1,21 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/app/context/AuthContext'; // --- NEW: Import the useAuth hook ---
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const router = useRouter();
+  const { login } = useAuth(); // --- NEW: Get the login function from our context ---
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
 
     try {
-      const response = await fetch('(\${process.env.NEXT_PUBLIC_API_URL}/api/auth/login', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -27,15 +27,16 @@ export default function LoginPage() {
         throw new Error(data.message || 'Failed to log in');
       }
 
-      // --- IMPORTANT ---
-      // On successful login, save the token to Local Storage
-      localStorage.setItem('token', data.token);
+      // --- UPDATED: Use the context's login function ---
+      // This will handle saving the token, fetching user data, and redirecting.
+      login(data.token);
 
-      // Redirect to the main reporting page
-      router.push('/');
-
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred.');
+      }
     }
   };
 
@@ -72,7 +73,7 @@ export default function LoginPage() {
           </button>
         </form>
          <p className="mt-4 text-center text-sm text-slate-400">
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <Link href="/register" className="font-medium text-teal-400 hover:underline">
             Sign Up
           </Link>

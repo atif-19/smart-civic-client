@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation'; // For redirection
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function RegisterPage() {
@@ -12,10 +12,11 @@ export default function RegisterPage() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    setError(''); // Clear previous errors
+    setError('');
 
     try {
-      const response = await fetch('\${process.env.NEXT_PUBLIC_API_URL}/api/auth/register', {
+      // FIX: Corrected the fetch URL to use backticks `` instead of single quotes ''
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -27,12 +28,16 @@ export default function RegisterPage() {
         throw new Error(data.message || 'Failed to register');
       }
 
-      // On successful registration, redirect to the login page
+      // On successful registration, alert the user and redirect to the login page
       alert('Registration successful! Please log in.');
       router.push('/login');
 
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) { // FIX: Properly typed the error to avoid 'any'
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unknown error occurred.');
+      }
     }
   };
 

@@ -16,14 +16,18 @@ export default function LeaderboardPage() {
   useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/auth/leaderboard');
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/leaderboard`);
         if (!response.ok) {
           throw new Error('Failed to fetch leaderboard data.');
         }
         const data = await response.json();
         setLeaderboard(data);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err) { // FIX: Typed the error
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('An unknown error occurred.');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -45,7 +49,8 @@ export default function LeaderboardPage() {
       <div className="max-w-2xl mx-auto">
         <header className="text-center mb-8">
           <h1 className="text-4xl font-bold text-teal-400">Top Contributors</h1>
-          <p className="text-slate-400 mt-2">See who's making the biggest impact in our community!</p>
+          {/* FIX: Replaced ' with &apos; */}
+          <p className="text-slate-400 mt-2">See who&apos;s making the biggest impact in our community!</p>
         </header>
 
         <div className="bg-slate-800 rounded-lg shadow-lg p-6">
