@@ -6,7 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import Heatmap from './Heatmap';
 
-// Fix for default marker icon bug in React Leaflet
+// Fix for default marker icon bug
 interface IconDefault extends L.Icon.Default {
   _getIconUrl?: () => string;
 }
@@ -32,24 +32,23 @@ interface MapProps {
 }
 
 export default function Map({ reports }: MapProps) {
-  // --- NEW: Logic to handle responsive zoom ---
+  // FIX: Initialize isMobile as false to ensure server and client render the same initial HTML
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    // This effect runs once on the client to check the window size
+    // This effect now safely runs ONLY on the client after the initial render
     const checkIsMobile = () => {
-      setIsMobile(window.innerWidth < 768); // 768px is a common breakpoint for tablets
+      setIsMobile(window.innerWidth < 768);
     };
-    checkIsMobile();
+    checkIsMobile(); // Check on mount
     window.addEventListener('resize', checkIsMobile);
     
-    // Cleanup the event listener
     return () => window.removeEventListener('resize', checkIsMobile);
-  }, []);
+  }, []); // Empty dependency array ensures it runs only once on the client
 
   const initialPosition: [number, number] = reports.length > 0 
     ? [reports[0].location.lat, reports[0].location.lng] 
-    : [23.0225, 72.5714]; // Default to Ahmedabad, India
+    : [23.0225, 72.5714];
 
   const heatmapPoints: [number, number, number][] = reports.map(report => [
     report.location.lat,
@@ -57,7 +56,6 @@ export default function Map({ reports }: MapProps) {
     1,
   ]);
   
-  // --- NEW: Set a dynamic zoom level based on screen size ---
   const initialZoom = isMobile ? 14 : 13;
 
   return (
@@ -65,7 +63,7 @@ export default function Map({ reports }: MapProps) {
       center={initialPosition} 
       zoom={initialZoom} 
       style={{ height: '100%', width: '100%' }}
-      zoomControl={!isMobile} // Optionally hide the default zoom control on mobile
+      zoomControl={!isMobile}
     >
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -81,7 +79,7 @@ export default function Map({ reports }: MapProps) {
               <h3 className="font-bold text-base mb-1">{report.category}</h3>
               <p className="text-sm mb-2">{report.description}</p>
               <img 
-src={report.imageUrl}
+                src={report.imageUrl} 
                 alt={report.category} 
                 className="w-full h-auto rounded"
               />
