@@ -11,7 +11,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (token: string) => void;
+  login: (token: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -35,11 +35,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const data = await response.json();
             setUser(data);
           } else {
+            // Token is invalid or expired
             localStorage.removeItem('token');
+            setUser(null);
           }
         } catch (error) {
           console.error('Failed to fetch user', error);
           localStorage.removeItem('token');
+          setUser(null);
         }
       }
       setIsLoading(false);
@@ -49,18 +52,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (token: string) => {
     localStorage.setItem('token', token);
-    // Fetch user data immediately after login
+    // Fetch user data immediately after login to update the context
     try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, {
-            headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if(response.ok) {
-            const data = await response.json();
-            setUser(data);
-            router.push('/');
-        }
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if(response.ok) {
+          const data = await response.json();
+          setUser(data);
+          router.push('/');
+      } else {
+        // Handle cases where token is immediately invalid
+        router.push('/');
+      }
     } catch (error) {
         console.error('Failed to fetch user after login', error);
+        router.push('/');
     }
   };
 

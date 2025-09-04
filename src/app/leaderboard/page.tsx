@@ -22,7 +22,7 @@ export default function LeaderboardPage() {
         }
         const data = await response.json();
         setLeaderboard(data);
-      } catch (err) { // FIX: Typed the error
+      } catch (err) {
         if (err instanceof Error) {
           setError(err.message);
         } else {
@@ -37,36 +37,52 @@ export default function LeaderboardPage() {
   }, []);
 
   if (isLoading) {
-    return <div className="text-center p-10 text-white">Loading Leaderboard...</div>;
+    return (
+      <main className="bg-slate-900 min-h-screen flex items-center justify-center">
+        <div className="text-center p-10 text-white">Loading Leaderboard...</div>
+      </main>
+    );
   }
 
   if (error) {
-    return <div className="text-center p-10 text-red-400">{error}</div>;
+    return (
+      <main className="bg-slate-900 min-h-screen flex items-center justify-center">
+        <div className="text-center p-10 text-red-400">{error}</div>
+      </main>
+    );
   }
 
   return (
-    <main className="bg-slate-900 min-h-screen p-8 text-slate-100">
+    // RESPONSIVE: Use smaller padding on mobile (p-4) and larger on desktop (md:p-8)
+    <main className="bg-slate-900 min-h-screen p-4 md:p-8 text-slate-100">
       <div className="max-w-2xl mx-auto">
         <header className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-teal-400">Top Contributors</h1>
-          {/* FIX: Replaced ' with &apos; */}
+          {/* RESPONSIVE: Smaller title on mobile (text-3xl) and larger on desktop (md:text-4xl) */}
+          <h1 className="text-3xl md:text-4xl font-bold text-teal-400">Top Contributors</h1>
           <p className="text-slate-400 mt-2">See who&apos;s making the biggest impact in our community!</p>
         </header>
 
-        <div className="bg-slate-800 rounded-lg shadow-lg p-6">
+        <div className="bg-slate-800 rounded-lg shadow-lg p-4 sm:p-6">
           <ol className="space-y-4">
             {leaderboard.map((user, index) => (
-              <li key={index} className="flex items-center justify-between p-4 bg-slate-700/50 rounded-md">
-                <div className="flex items-center">
-                  <span className="text-lg font-bold text-slate-400 w-8">{index + 1}.</span>
-                  <span className="ml-4 text-slate-200">{user.email}</span>
+              <li 
+                key={index} 
+                className="flex items-center justify-between p-3 sm:p-4 bg-slate-700/50 rounded-md transition-transform hover:scale-105"
+              >
+                <div className="flex items-center min-w-0">
+                  <span className="text-base sm:text-lg font-bold text-slate-400 w-8 text-center">{index + 1}.</span>
+                  {/* RESPONSIVE: Truncate long emails on small screens */}
+                  <span className="ml-2 sm:ml-4 text-sm sm:text-base text-slate-200 truncate">{user.email}</span>
                 </div>
-                <div className="flex items-center font-bold text-teal-400 text-lg">
-                  {index === 0 && <Crown className="w-6 h-6 mr-2 text-yellow-400" />}
+                <div className="flex items-center flex-shrink-0 font-bold text-teal-400 text-base sm:text-lg">
+                  {index === 0 && <Crown className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-yellow-400" />}
                   {user.points} Points
                 </div>
               </li>
             ))}
+            {leaderboard.length === 0 && (
+                <p className="text-center text-slate-400 py-8">The leaderboard is empty. Be the first to contribute!</p>
+            )}
           </ol>
         </div>
       </div>

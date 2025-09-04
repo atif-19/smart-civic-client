@@ -27,6 +27,7 @@ export default function AdminPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [filteredReports, setFilteredReports] = useState<Report[]>([]);
+  const [activeTab, setActiveTab] = useState<'map' | 'list'>('list');
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -88,24 +89,56 @@ export default function AdminPage() {
   if (error) return <div className="flex items-center justify-center h-screen text-red-500">{error}</div>;
 
   return (
-    <main className="flex h-screen bg-gray-100 font-sans">
-      <div className="w-1/2 h-screen">
+    <main className="flex flex-col md:flex-row h-screen bg-gray-100 font-sans">
+      {/* Mobile Tab Navigation */}
+      <div className="md:hidden bg-white border-b border-gray-300 flex">
+        <button
+          onClick={() => setActiveTab('list')}
+          className={`flex-1 py-3 px-4 text-center font-medium ${
+            activeTab === 'list' 
+              ? 'bg-blue-500 text-white' 
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          Reports List
+        </button>
+        <button
+          onClick={() => setActiveTab('map')}
+          className={`flex-1 py-3 px-4 text-center font-medium ${
+            activeTab === 'map' 
+              ? 'bg-blue-500 text-white' 
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          Map View
+        </button>
+      </div>
+
+      {/* Map Section */}
+      <div className={`${
+        activeTab === 'map' ? 'block' : 'hidden'
+      } md:block w-full md:w-1/2 h-1/2 md:h-screen`}>
         <MapWithNoSSR reports={filteredReports} />
       </div>
       
-      <div className="w-1/2 h-screen flex flex-col p-6">
-        <div className="flex justify-between items-center mb-4 flex-shrink-0">
-            <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
-            <Link href="/" className="bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-blue-700 transition-colors">
-                + New Report
-            </Link>
+      {/* Reports List Section */}
+      <div className={`${
+        activeTab === 'list' ? 'flex' : 'hidden'
+      } md:flex w-full md:w-1/2 h-1/2 md:h-screen flex-col p-3 md:p-6`}>
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 flex-shrink-0 space-y-2 sm:space-y-0">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-800">Admin Dashboard</h1>
+          <Link href="/" className="bg-blue-500 text-white font-bold py-2 px-3 md:px-4 rounded hover:bg-blue-700 transition-colors text-center text-sm md:text-base">
+            + New Report
+          </Link>
         </div>
 
-        <div className="flex space-x-4 mb-4 flex-shrink-0">
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 mb-4 flex-shrink-0">
           <select 
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="p-2 rounded-lg border bg-white text-gray-700 shadow-sm w-full focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="p-2 rounded-lg border bg-white text-gray-700 shadow-sm w-full focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm md:text-base"
           >
             <option value="all">Filter by Status (All)</option>
             <option value="submitted">Submitted</option>
@@ -116,7 +149,7 @@ export default function AdminPage() {
           <select 
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="p-2 rounded-lg border bg-white text-gray-700 shadow-sm w-full focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="p-2 rounded-lg border bg-white text-gray-700 shadow-sm w-full focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm md:text-base"
           >
             <option value="all">Filter by Category (All)</option>
             <option value="pothole">Pothole / Road Damage</option>
@@ -127,35 +160,53 @@ export default function AdminPage() {
           </select>
         </div>
 
-        <div className="space-y-4 overflow-y-auto">
+        {/* Reports List */}
+        <div className="space-y-3 md:space-y-4 overflow-y-auto">
           {filteredReports.length > 0 ? (
             filteredReports.map((report) => {
-              const imageUrl = `${process.env.NEXT_PUBLIC_API_URL}/${report.imageUrl.replace(/\\/g, '/')}`;
+              const imageUrl = report.imageUrl; 
               return (
-                <div key={report._id} className="bg-white p-4 rounded-lg shadow-md flex items-start space-x-4">
-                  <img src={imageUrl} alt={report.category} width={96} height={96} className="w-24 h-24 object-cover rounded-md" />
-                  <div className="flex-1">
-                     <span className="text-xs font-semibold bg-gray-200 text-gray-700 px-2 py-1 rounded-full">{report.category}</span>
-                     <p className="mt-2 text-sm text-gray-800">{report.description}</p>
-                     <p className="text-xs text-gray-500 mt-1">Reported: {new Date(report.createdAt).toLocaleDateString()}</p>
-                  </div>
-                  <div className="w-auto">
-                    <select
-                      value={report.status}
-                      onChange={(e) => handleStatusChange(report._id, e.target.value as Report['status'])}
-                      className={`text-xs font-bold p-2 rounded-md border-2 appearance-none ${getStatusColor(report.status)}`}
-                    >
-                      <option value="submitted">Submitted</option>
-                      <option value="acknowledged">Acknowledged</option>
-                      <option value="in_progress">In Progress</option>
-                      <option value="resolved">Resolved</option>
-                    </select>
+                <div key={report._id} className="bg-white p-3 md:p-4 rounded-lg shadow-md">
+                  <div className="flex flex-col sm:flex-row sm:items-start space-y-3 sm:space-y-0 sm:space-x-4">
+                    {/* Image */}
+                    <div className="flex-shrink-0 w-full sm:w-auto flex justify-center sm:justify-start">
+                      <img 
+                        src={imageUrl} 
+                        alt={report.category} 
+                        className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-md" 
+                      />
+                    </div>
+                    
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs font-semibold bg-gray-200 text-gray-700 px-2 py-1 rounded-full">
+                        {report.category}
+                      </span>
+                      <p className="mt-2 text-sm text-gray-800 leading-relaxed">{report.description}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Reported: {new Date(report.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    
+                    {/* Status Dropdown */}
+                    <div className="flex-shrink-0 w-full sm:w-auto">
+                      <select
+                        value={report.status}
+                        onChange={(e) => handleStatusChange(report._id, e.target.value as Report['status'])}
+                        className={`w-full sm:w-auto text-xs font-bold p-2 rounded-md border-2 appearance-none ${getStatusColor(report.status)}`}
+                      >
+                        <option value="submitted">Submitted</option>
+                        <option value="acknowledged">Acknowledged</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="resolved">Resolved</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               );
             })
           ) : (
-             <div className="text-center py-10 bg-white rounded-lg shadow-md">
+             <div className="text-center py-6 md:py-10 bg-white rounded-lg shadow-md">
                 <p className="text-gray-500">No reports match the current filters.</p>
              </div>
           )}
