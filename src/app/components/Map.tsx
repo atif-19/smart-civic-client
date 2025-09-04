@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -33,12 +33,42 @@ interface MapProps {
   reports: Report[];
 }
 
+// Map resize handler component
+function MapResizer() {
+  const [map, setMap] = useState<L.Map | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && map) {
+      const handleResize = () => {
+        setTimeout(() => {
+          map.invalidateSize();
+        }, 100);
+      };
+
+      window.addEventListener('resize', handleResize);
+      window.addEventListener('orientationchange', handleResize);
+      
+      // Initial resize after component mounts
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 500);
+
+      return () => {
+        window.removeEventListener('resize', handleResize);
+        window.removeEventListener('orientationchange', handleResize);
+      };
+    }
+  }, [map]);
+
+  return null;
+}
+
 export default function Map({ reports }: MapProps) {
   const [isMobile, setIsMobile] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
 
   useEffect(() => {
-    // Ensure we're on the client side
     setIsClient(true);
     
     const checkIsMobile = () => {
@@ -55,7 +85,29 @@ export default function Map({ reports }: MapProps) {
     }
   }, []);
 
-  // Don't render the map until we're on the client
+  const handleMapReady = useCallback((map: L.Map) => {
+    setMapInstance(map);
+    
+    // Force map to resize after mount
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
+
+    // Add touch handling for mobile
+    if (isMobile) {
+      map.on('touchstart', () => {
+        map.dragging.disable();
+      });
+      
+      map.on('touchend', () => {
+        setTimeout(() => {
+          map.dragging.enable();
+        }, 100);
+      });
+    }
+  }, [isMobile]);
+
+  // Don't render until client-side
   if (!isClient) {
     return (
       <div className="flex items-center justify-center h-full w-full bg-gray-300">
@@ -74,32 +126,38 @@ export default function Map({ reports }: MapProps) {
     1,
   ]);
   
-  const initialZoom = isMobile ? 12 : 13;
+  const initialZoom = isMobile ? 11 : 13;
 
   return (
-    <div className="h-full w-full">
+    <div className="h-full w-full relative">
       <MapContainer 
+        key={`${isMobile}-${reports.length}`} // Force re-render on mobile/data changes
         center={initialPosition} 
         zoom={initialZoom} 
-        style={{ height: '100%', width: '100%' }}
-        zoomControl={!isMobile}
+        style={{ height: '100%', width: '100%', zIndex: 1 }}
+        zoomControl={true}
         scrollWheelZoom={!isMobile}
         doubleClickZoom={true}
-        touchZoom={isMobile}
+        touchZoom={true}
         dragging={true}
-        attributionControl={!isMobile}
+        attributionControl={false}
+        preferCanvas={isMobile}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution={isMobile ? '' : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           maxZoom={18}
+          minZoom={8}
           tileSize={256}
+          zoomOffset={0}
+          updateWhenIdle={isMobile}
+          keepBuffer={isMobile ? 1 : 2}
+          updateWhenZooming={!isMobile}
         />
         
         {heatmapPoints.length > 0 && <Heatmap points={heatmapPoints} />}
 
         {reports.map((report) => {
-          // Construct image URL properly
           const imageUrl = report.imageUrl.startsWith('http') 
             ? report.imageUrl 
             : `${process.env.NEXT_PUBLIC_API_URL || ''}/${report.imageUrl.replace(/\\/g, '/')}`;
@@ -107,24 +165,26 @@ export default function Map({ reports }: MapProps) {
           return (
             <Marker key={report._id} position={[report.location.lat, report.location.lng]}>
               <Popup
-                maxWidth={isMobile ? 200 : 300}
-                minWidth={isMobile ? 150 : 200}
+                maxWidth={isMobile ? 250 : 300}
+                minWidth={isMobile ? 200 : 250}
                 closeButton={true}
-                autoClose={true}
+                autoClose={false}
+                closeOnClick={false}
+                className={isMobile ? 'mobile-popup' : ''}
               >
                 <div className="font-sans">
                   <h3 className={`font-bold mb-1 ${isMobile ? 'text-sm' : 'text-base'}`}>
                     {report.category}
                   </h3>
-                  <p className={`mb-2 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  <p className={`mb-2 ${isMobile ? 'text-xs' : 'text-sm'} line-clamp-3`}>
                     {report.description}
                   </p>
                   <img 
                     src={imageUrl} 
                     alt={report.category} 
                     className="w-full h-auto rounded max-h-32 object-cover"
+                    loading="lazy"
                     onError={(e) => {
-                      // Hide broken images
                       e.currentTarget.style.display = 'none';
                     }}
                   />
@@ -134,6 +194,26 @@ export default function Map({ reports }: MapProps) {
           );
         })}
       </MapContainer>
+      
+      {/* Custom zoom controls for mobile */}
+      {isMobile && mapInstance && (
+        <div className="absolute top-4 right-4 z-10 flex flex-col space-y-2">
+          <button
+            onClick={() => mapInstance.zoomIn()}
+            className="bg-white shadow-lg rounded p-2 text-lg font-bold hover:bg-gray-100"
+            aria-label="Zoom in"
+          >
+            +
+          </button>
+          <button
+            onClick={() => mapInstance.zoomOut()}
+            className="bg-white shadow-lg rounded p-2 text-lg font-bold hover:bg-gray-100"
+            aria-label="Zoom out"
+          >
+            −
+          </button>
+        </div>
+      )}
     </div>
   );
 }
