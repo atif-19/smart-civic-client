@@ -1,32 +1,27 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet.heat';
 import L from 'leaflet';
 
-// Type definitions for leaflet.heat
+// Type definitions for the leaflet.heat plugin
 interface HeatLayerOptions {
   radius?: number;
   blur?: number;
   maxZoom?: number;
-  max?: number;
   minOpacity?: number;
-  gradient?: Record<string, string>;
 }
 
 declare module 'leaflet' {
+  interface HeatLayer extends Layer {
+    setLatLngs(latlngs: L.LatLngExpression[]): this;
+    setOptions(options: HeatLayerOptions): this;
+  }
   function heatLayer(
-    latlngs: [number, number, number][],
+    latlngs: L.LatLngExpression[],
     options?: HeatLayerOptions
   ): HeatLayer;
-
-  interface HeatLayer extends Layer {
-    setLatLngs(latlngs: [number, number, number][]): this;
-    addLatLng(latlng: [number, number, number]): this;
-    setOptions(options: HeatLayerOptions): this;
-    redraw(): this;
-  }
 }
 
 type HeatmapProps = {
@@ -36,107 +31,54 @@ type HeatmapProps = {
 const Heatmap = ({ points }: HeatmapProps) => {
   const map = useMap();
   const heatLayerRef = useRef<L.HeatLayer | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
-  
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setIsMobile(window.innerWidth < 768);
-    }
-  }, []);
 
-  // Simplified heatmap options for mobile performance
-  const getHeatmapOptions = (zoom: number): HeatLayerOptions => {
-    const baseRadius = isMobile ? 15 : 20;
-    const baseBlur = isMobile ? 8 : 12;
-    
-    if (zoom <= 10) {
-      return { radius: baseRadius + 10, blur: baseBlur + 5 };
-    } else if (zoom <= 13) {
-      return { radius: baseRadius, blur: baseBlur };
+  // A memoized function to calculate responsive options
+  const getResponsiveOptions = useCallback((): HeatLayerOptions => {
+    const zoom = map.getZoom();
+    const isMobile = window.innerWidth < 768;
+
+    if (zoom <= 11) {
+      return { radius: isMobile ? 25 : 35, blur: isMobile ? 15 : 25 };
+    } else if (zoom <= 14) {
+      return { radius: isMobile ? 15 : 25, blur: isMobile ? 10 : 15 };
     } else {
-      return { radius: baseRadius - 5, blur: baseBlur - 3 };
+      return { radius: isMobile ? 10 : 15, blur: isMobile ? 8 : 12 };
     }
-  };
+  }, [map]);
 
-  // Throttled zoom handler to prevent excessive updates
-  const throttledZoomHandler = useRef<NodeJS.Timeout>(null);
-  
-  useMapEvents({
-    zoomend: () => {
-      if (throttledZoomHandler.current) {
-        clearTimeout(throttledZoomHandler.current);
-      }
-      
-      throttledZoomHandler.current = setTimeout(() => {
-        try {
-          if (heatLayerRef.current && map) {
-            const zoom = map.getZoom();
-            const options = getHeatmapOptions(zoom);
-            heatLayerRef.current.setOptions(options);
-          }
-        } catch (error) {
-          console.warn('Error updating heatmap on zoom:', error);
-        }
-      }, 200); // 200ms throttle
-    },
-    
-    resize: () => {
-      setTimeout(() => {
-        if (heatLayerRef.current) {
-          try {
-            heatLayerRef.current.redraw();
-          } catch (error) {
-            console.warn('Error redrawing heatmap on resize:', error);
-          }
-        }
-      }, 100);
-    },
-  });
-
+  // Effect to create and remove the layer
   useEffect(() => {
-    if (!map || points.length === 0) return;
+    // Create the layer only once
+    if (!heatLayerRef.current) {
+      heatLayerRef.current = L.heatLayer([], getResponsiveOptions()).addTo(map);
+    }
 
-    try {
-      // Remove existing layer
+    // Cleanup function: remove the layer when the component unmounts
+    return () => {
       if (heatLayerRef.current) {
         map.removeLayer(heatLayerRef.current);
         heatLayerRef.current = null;
       }
-
-      // Create new heatmap with optimized settings
-      const zoom = map.getZoom();
-      const options = getHeatmapOptions(zoom);
-      
-      const newHeatLayer = L.heatLayer(points, {
-        ...options,
-        maxZoom: 18,
-        max: 1.0,
-        minOpacity: isMobile ? 0.2 : 0.1,
-      });
-
-      map.addLayer(newHeatLayer);
-      heatLayerRef.current = newHeatLayer;
-
-    } catch (error) {
-      console.error('Error creating heatmap:', error);
-    }
-
-    // Cleanup function
-    return () => {
-      try {
-        if (heatLayerRef.current && map.hasLayer(heatLayerRef.current)) {
-          map.removeLayer(heatLayerRef.current);
-        }
-        if (throttledZoomHandler.current) {
-          clearTimeout(throttledZoomHandler.current);
-        }
-      } catch (error) {
-        console.warn('Error cleaning up heatmap:', error);
-      }
     };
-  }, [map, points, isMobile]);
+  }, [map, getResponsiveOptions]);
 
-  return null;
+  // Effect to update the points when data changes
+  useEffect(() => {
+    if (heatLayerRef.current) {
+      heatLayerRef.current.setLatLngs(points);
+    }
+  }, [points]);
+
+  // Hook to update options dynamically on zoom
+  useMapEvents({
+    zoomend: () => {
+      if (heatLayerRef.current) {
+        heatLayerRef.current.setOptions(getResponsiveOptions());
+      }
+    },
+  });
+
+  return null; // This component renders nothing itself
 };
 
 export default Heatmap;
