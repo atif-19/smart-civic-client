@@ -40,9 +40,8 @@ export default function Header() {
           {user ? (
             <>
               <Link href="/leaderboard" className="text-sm font-semibold hover:text-teal-400">Leaderboard</Link>
-              {isAdmin && (
                 <Link href="/admin" className="text-sm font-semibold bg-indigo-500 hover:bg-indigo-600 px-3 py-2 rounded-md">Admin Dashboard</Link>
-              )}
+                <Link href="/admin/analytics" className="text-sm font-semibold ...">Analytics</Link>
               <span className="text-sm">{user.email} | <span className="font-bold text-teal-400">{user.points} Points</span></span>
               <button onClick={logout} className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded text-sm">Logout</button>
             </>
