@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ThumbsUp, MessageSquare, List, Map as MapIcon } from 'lucide-react';
+import { ThumbsUp, MessageSquare, List, Map as MapIcon, X as CloseIcon } from 'lucide-react';
+import ClientOnly from '../components/ClientOnly';
 
-// Interfaces
+// --- Type Definitions ---
 interface User {
   _id: string;
   email: string;
@@ -29,6 +30,7 @@ interface Report {
   commentCount: number;
 }
 
+// Dynamically import the Map component to prevent server-side rendering issues
 const MapWithNoSSR = dynamic(() => import('../components/Map'), { 
   ssr: false,
   loading: () => <div className="flex items-center justify-center h-full w-full bg-gray-300">Loading Map...</div>
@@ -50,24 +52,25 @@ export default function AdminPage() {
   const [currentComments, setCurrentComments] = useState<Comment[]>([]);
   const [isCommentsLoading, setIsCommentsLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchReports = async () => {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reports`);
-        if (!response.ok) throw new Error('Failed to fetch reports');
-        const data: Report[] = await response.json();
-        setReports(data);
-      } catch {
-        setError('Could not load reports.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchReports();
+  const fetchReports = useCallback(async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reports`);
+      if (!response.ok) throw new Error('Failed to fetch reports');
+      const data: Report[] = await response.json();
+      setReports(data);
+    } catch {
+      setError('Could not load reports.');
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    let reportList = reports ? [...reports] : [];
+    fetchReports();
+  }, [fetchReports]);
+
+  useEffect(() => {
+    let reportList = [...reports];
     if (statusFilter !== 'all') {
       reportList = reportList.filter(report => report.status === statusFilter);
     }
@@ -90,12 +93,8 @@ export default function AdminPage() {
         body: JSON.stringify({ status: newStatus }),
       });
       if (!response.ok) throw new Error('Failed to update status');
-      const updatedReport = await response.json();
-      setReports(currentReports =>
-        currentReports.map(report =>
-          report._id === reportId ? { ...report, status: updatedReport.status } : report
-        )
-      );
+      // Refetch all reports to ensure data consistency
+      fetchReports();
     } catch {
       alert("Failed to update status.");
     }
@@ -133,6 +132,7 @@ export default function AdminPage() {
   return (
     <>
       <main className="flex flex-col md:flex-row h-screen bg-gray-100 font-sans">
+        {/* Mobile Tab Navigation */}
         <div className="md:hidden bg-white border-b border-gray-300 flex">
           <button onClick={() => setActiveTab('list')} className={`flex-1 py-3 px-4 text-center font-medium flex items-center justify-center space-x-2 ${activeTab === 'list' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
             <List size={16} /> <span>Reports List</span>
@@ -142,10 +142,14 @@ export default function AdminPage() {
           </button>
         </div>
 
+        {/* Map Section */}
         <div className={`${activeTab === 'map' ? 'block' : 'hidden'} md:block w-full md:w-1/2 h-full`}>
-          <MapWithNoSSR reports={filteredReports} />
+          <ClientOnly>
+            <MapWithNoSSR reports={filteredReports} />
+          </ClientOnly>
         </div>
         
+        {/* Reports List Section */}
         <div className={`${activeTab === 'list' ? 'flex' : 'hidden'} md:flex w-full md:w-1/2 h-full flex-col p-3 md:p-6`}>
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 flex-shrink-0 space-y-2 sm:space-y-0">
             <h1 className="text-xl md:text-2xl font-bold text-gray-800">Admin Dashboard</h1>
@@ -164,11 +168,12 @@ export default function AdminPage() {
             </select>
             <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="p-2 rounded-lg border bg-white text-gray-700 shadow-sm w-full focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm md:text-base">
               <option value="all">Filter by Category (All)</option>
-              <option value="pothole">Pothole / Road Damage</option>
-              <option value="streetlight">Broken Streetlight</option>
-              <option value="garbage">Garbage Overflow</option>
-              <option value="water-logging">Water Logging</option>
-              <option value="other">Other</option>
+              <option value="Roads">Roads</option>
+              <option value="Electrical">Electrical</option>
+              <option value="Sanitation">Sanitation</option>
+              <option value="Environment">Environment</option>
+              <option value="Infrastructure">Infrastructure</option>
+              <option value="Other">Other</option>
             </select>
             <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="p-2 rounded-lg border bg-white text-gray-700 shadow-sm w-full focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm md:text-base">
               <option value="upvotes">Sort by Highest Upvotes</option>
@@ -181,7 +186,7 @@ export default function AdminPage() {
               <div key={report._id} className="bg-white p-3 md:p-4 rounded-lg shadow-md">
                 <div className="flex flex-col sm:flex-row sm:items-start space-y-3 sm:space-y-0 sm:space-x-4">
                   <button onClick={() => setSelectedImage(report.imageUrl)} className="flex-shrink-0 w-full sm:w-auto flex justify-center sm:justify-start">
-                    <img src={report.imageUrl} alt={report.category} width={96} height={96} className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-md cursor-pointer hover:opacity-80 transition-opacity" />
+                    <Image src={report.imageUrl} alt={report.category} width={96} height={96} className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-md cursor-pointer hover:opacity-80 transition-opacity" />
                   </button>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
@@ -217,7 +222,7 @@ export default function AdminPage() {
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[1000] p-4" onClick={() => setSelectedImage(null)}>
           <button className="absolute top-4 right-4 text-white bg-red-500 rounded-full w-8 h-8 flex items-center justify-center text-xl font-bold z-10" onClick={() => setSelectedImage(null)}>&times;</button>
           <div className="relative w-full h-full max-w-4xl max-h-[90vh]">
-            <img src={selectedImage} alt="Enlarged report view" className="w-full h-full object-contain" />
+            <Image src={selectedImage} alt="Enlarged report view" layout="fill" objectFit="contain" />
           </div>
         </div>
       )}
@@ -225,9 +230,12 @@ export default function AdminPage() {
       {viewingCommentsFor && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[1000] p-4" onClick={() => setViewingCommentsFor(null)}>
           <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="p-4 border-b">
-              <h2 className="text-lg font-bold">Comments for: <span className="text-blue-600">{viewingCommentsFor.category}</span></h2>
-              <p className="text-sm text-gray-600 truncate">{viewingCommentsFor.description}</p>
+            <div className="p-4 border-b flex justify-between items-center">
+              <div>
+                <h2 className="text-lg font-bold">Comments for: <span className="text-blue-600">{viewingCommentsFor.category}</span></h2>
+                <p className="text-sm text-gray-600 truncate">{viewingCommentsFor.description}</p>
+              </div>
+              <button onClick={() => setViewingCommentsFor(null)} className="text-gray-400 hover:text-gray-600"><CloseIcon size={24} /></button>
             </div>
             <div className="p-4 overflow-y-auto space-y-3">
               {isCommentsLoading ? ( <p>Loading comments...</p> ) : 
