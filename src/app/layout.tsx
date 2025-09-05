@@ -4,7 +4,7 @@ import "./globals.css";
 import Header from "./components/Header";
 import { AuthProvider } from "./context/AuthContext";
 
-// --- NEW: Import Leaflet's CSS here ---
+// --- Ensure this import is here ---
 import 'leaflet/dist/leaflet.css';
 
 const inter = Inter({ subsets: ["latin"] });
