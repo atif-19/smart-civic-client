@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Header from "./components/Header";
-import { AuthProvider } from "./context/AuthContext"; // Import the provider
+import { AuthProvider } from "./context/AuthContext";
+
+// --- NEW: Import Leaflet's CSS here ---
+import 'leaflet/dist/leaflet.css';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,7 +22,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        {/* Wrap everything inside the AuthProvider */}
         <AuthProvider>
           <Header />
           {children}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet.heat';
 import L from 'leaflet';
@@ -31,11 +31,16 @@ type HeatmapProps = {
 const Heatmap = ({ points }: HeatmapProps) => {
   const map = useMap();
   const heatLayerRef = useRef<L.HeatLayer | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
-  // A memoized function to calculate responsive options
+  // This effect ensures the component is mounted on the client
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const getResponsiveOptions = useCallback((): HeatLayerOptions => {
     const zoom = map.getZoom();
-    const isMobile = window.innerWidth < 768;
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
     if (zoom <= 11) {
       return { radius: isMobile ? 25 : 35, blur: isMobile ? 15 : 25 };
@@ -48,37 +53,35 @@ const Heatmap = ({ points }: HeatmapProps) => {
 
   // Effect to create and remove the layer
   useEffect(() => {
-    // Create the layer only once
-    if (!heatLayerRef.current) {
-      heatLayerRef.current = L.heatLayer([], getResponsiveOptions()).addTo(map);
-    }
+    if (!isMounted || !map) return;
 
-    // Cleanup function: remove the layer when the component unmounts
+    heatLayerRef.current = L.heatLayer(points, getResponsiveOptions()).addTo(map);
+
     return () => {
       if (heatLayerRef.current) {
         map.removeLayer(heatLayerRef.current);
         heatLayerRef.current = null;
       }
     };
-  }, [map, getResponsiveOptions]);
+  }, [map, isMounted, getResponsiveOptions]); // Note: Points removed to prevent re-creation
 
   // Effect to update the points when data changes
   useEffect(() => {
-    if (heatLayerRef.current) {
+    if (isMounted && heatLayerRef.current) {
       heatLayerRef.current.setLatLngs(points);
     }
-  }, [points]);
+  }, [points, isMounted]);
 
   // Hook to update options dynamically on zoom
   useMapEvents({
     zoomend: () => {
-      if (heatLayerRef.current) {
+      if (isMounted && heatLayerRef.current) {
         heatLayerRef.current.setOptions(getResponsiveOptions());
       }
     },
   });
 
-  return null; // This component renders nothing itself
+  return null;
 };
 
 export default Heatmap;
