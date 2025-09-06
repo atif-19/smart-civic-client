@@ -1,7 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useCallback, useState } from 'react';
-import { useMap, useMapEvents } from 'react-leaflet';
+import { useEffect, useRef, useCallback, useState } from "react";
+import { useMap, useMapEvents } from "react-leaflet";
+import * as L from "leaflet";
 
 // Type definitions for the leaflet.heat plugin
 interface HeatLayerOptions {
@@ -11,15 +12,19 @@ interface HeatLayerOptions {
   minOpacity?: number;
 }
 
-declare module 'leaflet' {
-  interface HeatLayer extends Layer {
-    setLatLngs(latlngs: L.LatLngExpression[]): this;
-    setOptions(options: HeatLayerOptions): this;
-  }
+// Extended types for leaflet.heat
+interface ExtendedHeatLayer  {
+  setLatLngs(latlngs: L.LatLngExpression[]): this;
+  setOptions(options: HeatLayerOptions): this;
+  _map?: L.Map;
+  _canvas?: HTMLCanvasElement;
+}
+
+declare module "leaflet" {
   function heatLayer(
     latlngs: L.LatLngExpression[],
     options?: HeatLayerOptions
-  ): HeatLayer;
+  ): ExtendedHeatLayer;
 }
 
 type HeatmapProps = {
@@ -28,7 +33,7 @@ type HeatmapProps = {
 
 const Heatmap = ({ points }: HeatmapProps) => {
   const map = useMap();
-  const heatLayerRef = useRef<any>(null);
+  const heatLayerRef = useRef<ExtendedHeatLayer | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
@@ -43,29 +48,29 @@ const Heatmap = ({ points }: HeatmapProps) => {
 
     try {
       const zoom = map.getZoom();
-      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
       if (zoom <= 11) {
-        return { 
-          radius: isMobile ? 20 : 30, 
+        return {
+          radius: isMobile ? 20 : 30,
           blur: isMobile ? 12 : 20,
-          minOpacity: 0.4
+          minOpacity: 0.4,
         };
       } else if (zoom <= 14) {
-        return { 
-          radius: isMobile ? 12 : 20, 
+        return {
+          radius: isMobile ? 12 : 20,
           blur: isMobile ? 8 : 12,
-          minOpacity: 0.4
+          minOpacity: 0.4,
         };
       } else {
-        return { 
-          radius: isMobile ? 8 : 12, 
+        return {
+          radius: isMobile ? 8 : 12,
           blur: isMobile ? 6 : 10,
-          minOpacity: 0.4
+          minOpacity: 0.4,
         };
       }
     } catch (error) {
-      console.error('Error getting responsive options:', error);
+      console.error("Error getting responsive options:", error);
       return { radius: 25, blur: 15, minOpacity: 0.4 };
     }
   }, [map, isClient]);
@@ -77,32 +82,52 @@ const Heatmap = ({ points }: HeatmapProps) => {
     const initializeHeatLayer = async () => {
       try {
         // Dynamic import to ensure leaflet.heat is available
-        await import('leaflet.heat');
-        const L = (window as any).L;
-        
-        if (!L || !L.heatLayer) {
-          console.error('Leaflet heatLayer not available');
+        await import("leaflet.heat");
+        const LeafletLib = (window as { L?: typeof L }).L;
+
+        if (!LeafletLib || !LeafletLib.heatLayer) {
+          console.error("Leaflet heatLayer not available");
           return;
         }
 
-        // Validate points data
-        const validPoints = points.filter(point => 
-          Array.isArray(point) && 
-          point.length >= 2 && 
-          typeof point[0] === 'number' && 
-          typeof point[1] === 'number' &&
-          !isNaN(point[0]) && 
-          !isNaN(point[1])
-        );
+        // Wait for map container to have proper dimensions
+        const checkMapSize = () => {
+          const container = map.getContainer();
+          if (
+            container &&
+            container.offsetWidth > 0 &&
+            container.offsetHeight > 0
+          ) {
+            // Validate and filter points
+            const validPoints = points.filter(
+              (point) =>
+                Array.isArray(point) &&
+                point.length >= 2 &&
+                typeof point[0] === "number" &&
+                typeof point[1] === "number" &&
+                !isNaN(point[0]) &&
+                !isNaN(point[1]) &&
+                point[0] >= -90 &&
+                point[0] <= 90 &&
+                point[1] >= -180 &&
+                point[1] <= 180
+            );
 
-        const options = getResponsiveOptions();
-        heatLayerRef.current = L.heatLayer(validPoints, options);
-        
-        if (map && heatLayerRef.current) {
-          map.addLayer(heatLayerRef.current);
-        }
+            const options = getResponsiveOptions();
+            heatLayerRef.current = LeafletLib.heatLayer(validPoints, options);
+
+            if (map && heatLayerRef.current) {
+map.addLayer(heatLayerRef.current as unknown as L.Layer);            }
+          } else {
+            // Retry after container is ready
+            setTimeout(checkMapSize, 100);
+          }
+        };
+
+        // Small delay to ensure map is fully rendered
+        setTimeout(checkMapSize, 50);
       } catch (error) {
-        console.error('Error initializing heat layer:', error);
+        console.error("Error initializing heat layer:", error);
       }
     };
 
@@ -111,14 +136,13 @@ const Heatmap = ({ points }: HeatmapProps) => {
     return () => {
       if (heatLayerRef.current && map) {
         try {
-          map.removeLayer(heatLayerRef.current);
-          heatLayerRef.current = null;
+map.removeLayer(heatLayerRef.current as unknown as L.Layer);          heatLayerRef.current = null;
         } catch (error) {
-          console.error('Error removing heat layer:', error);
+          console.error("Error removing heat layer:", error);
         }
       }
     };
-  }, [map, isMounted, isClient, getResponsiveOptions]);
+  }, [map, isMounted, isClient, getResponsiveOptions, points]);
 
   // Effect to update the points when data changes
   useEffect(() => {
@@ -127,20 +151,27 @@ const Heatmap = ({ points }: HeatmapProps) => {
     try {
       // Ensure map container has proper dimensions
       const container = map.getContainer();
-      if (!container || container.offsetWidth === 0 || container.offsetHeight === 0) {
+      if (
+        !container ||
+        container.offsetWidth === 0 ||
+        container.offsetHeight === 0
+      ) {
         return;
       }
 
       // Validate and filter points
-      const validPoints = points.filter(point => 
-        Array.isArray(point) && 
-        point.length >= 2 && 
-        typeof point[0] === 'number' && 
-        typeof point[1] === 'number' &&
-        !isNaN(point[0]) && 
-        !isNaN(point[1]) &&
-        point[0] >= -90 && point[0] <= 90 &&
-        point[1] >= -180 && point[1] <= 180
+      const validPoints = points.filter(
+        (point) =>
+          Array.isArray(point) &&
+          point.length >= 2 &&
+          typeof point[0] === "number" &&
+          typeof point[1] === "number" &&
+          !isNaN(point[0]) &&
+          !isNaN(point[1]) &&
+          point[0] >= -90 &&
+          point[0] <= 90 &&
+          point[1] >= -180 &&
+          point[1] <= 180
       );
 
       if (heatLayerRef.current.setLatLngs) {
@@ -152,7 +183,7 @@ const Heatmap = ({ points }: HeatmapProps) => {
         }, 50);
       }
     } catch (error) {
-      console.error('Error updating heat layer points:', error);
+      console.error("Error updating heat layer points:", error);
     }
   }, [points, isMounted, isClient, map]);
 
@@ -160,14 +191,14 @@ const Heatmap = ({ points }: HeatmapProps) => {
   useMapEvents({
     zoomend: () => {
       if (!isMounted || !isClient || !heatLayerRef.current) return;
-      
+
       try {
         const newOptions = getResponsiveOptions();
         if (heatLayerRef.current.setOptions) {
           heatLayerRef.current.setOptions(newOptions);
         }
       } catch (error) {
-        console.error('Error updating heat layer options on zoom:', error);
+        console.error("Error updating heat layer options on zoom:", error);
       }
     },
   });
