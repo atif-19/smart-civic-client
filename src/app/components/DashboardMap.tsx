@@ -180,11 +180,14 @@ const DashboardMap = ({ reports }: MapProps) => {
 
         // Create custom marker icon
         const customMarkerIcon = LeafletLib.divIcon({
-          html: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#3B82F6"/></svg>`,
+          html: `<div class="custom-marker-container">
+            <div class="custom-marker-pin"></div>
+            <div class="custom-marker-dot"></div>
+          </div>`,
           className: "",
-          iconSize: [24, 24],
-          iconAnchor: [12, 24],
-          popupAnchor: [0, -24],
+          iconSize: [24, 32],
+          iconAnchor: [12, 32],
+          popupAnchor: [0, -32],
         });
 
         // Wait for container to have proper dimensions
@@ -446,24 +449,42 @@ const DashboardMap = ({ reports }: MapProps) => {
                   }
                 );
 
+                const getCategoryColor = (category: string) => {
+                  const colors: Record<string, string> = {
+                    Roads: "#f97316",
+                    Electrical: "#eab308", 
+                    Sanitation: "#22c55e",
+                    Environment: "#3b82f6",
+                    Infrastructure: "#a855f7",
+                    Other: "#6b7280"
+                  };
+                  return colors[category] || "#6b7280";
+                };
+
                 const popupContent = `
-                <div style="font-family: sans-serif; max-width: 200px;">
-                  <h3 style="font-size: 1rem; font-weight: bold; margin: 0 0 4px; word-wrap: break-word;">${
-                    report.category
-                  }</h3>
-                  <p style="font-size: 0.875rem; margin: 0 0 8px; word-wrap: break-word;">${
-                    report.description
-                  }</p>
-                  ${
-                    report.imageUrl
-                      ? `<img src="${report.imageUrl}" alt="${report.category}" style="width: 100%; height: auto; border-radius: 4px; max-height: 150px; object-fit: cover;" onerror="this.style.display='none'" />`
-                      : ""
-                  }
-                </div>
-              `;
+                  <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 280px; border-radius: 12px; overflow: hidden;">
+                    <div style="background: linear-gradient(135deg, ${getCategoryColor(report.category)}, ${getCategoryColor(report.category)}cc); color: white; padding: 12px 16px; margin: -10px -10px 12px -10px;">
+                      <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">${report.category}</h3>
+                      <div style="display: flex; align-items: center; margin-top: 6px; font-size: 0.85rem; opacity: 0.95;">
+                        <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20" style="margin-right: 4px;">
+                          <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z"/>
+                        </svg>
+                        ${report.upvoteCount || 0} upvotes
+                      </div>
+                    </div>
+                    <div style="padding: 0 4px;">
+                      <p style="font-size: 0.9rem; margin: 0 0 12px; color: #374151; line-height: 1.5;">${report.description}</p>
+                      ${
+                        report.imageUrl
+                          ? `<img src="${report.imageUrl}" alt="${report.category}" style="width: 100%; height: auto; border-radius: 8px; max-height: 160px; object-fit: cover; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);" onerror="this.style.display='none'" />`
+                          : ""
+                      }
+                    </div>
+                  </div>
+                `;
 
                 marker.bindPopup(popupContent, {
-                  maxWidth: 250,
+                  maxWidth: 300,
                   className: "custom-popup",
                 });
 
@@ -484,20 +505,119 @@ const DashboardMap = ({ reports }: MapProps) => {
 
   if (!isClient) {
     return (
-      <div className="flex items-center justify-center h-full w-full bg-gray-300">
-        <div className="text-gray-600">Loading Map...</div>
+      <div className="flex items-center justify-center h-full w-full bg-gradient-to-br from-slate-800 to-slate-900 relative overflow-hidden">
+        <div className="absolute inset-0 bg-slate-800/20"></div>
+        <div className="relative z-10 flex flex-col items-center space-y-4">
+          <div className="w-12 h-12 border-3 border-teal-500/30 border-t-teal-500 rounded-full animate-spin"></div>
+          <div className="text-slate-300 font-medium">Loading Map...</div>
+          <div className="flex space-x-1">
+            <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce"></div>
+            <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+            <div className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full w-full relative">
-      <div ref={mapContainerRef} className="h-full w-full" />
+    <div className="h-full w-full relative overflow-hidden rounded-lg md:rounded-none">
+      <div ref={mapContainerRef} className="h-full w-full rounded-lg md:rounded-none" />
+      
       {!mapReady && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-300 bg-opacity-75">
-          <div className="text-gray-600">Initializing Map...</div>
+        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800/95 to-slate-900/95 backdrop-blur-sm z-10">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="relative">
+              <div className="w-16 h-16 border-4 border-teal-500/30 border-t-teal-500 rounded-full animate-spin"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <svg className="w-6 h-6 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+            </div>
+            <div className="text-slate-300 font-medium text-center">
+              <div className="text-lg">Initializing Map...</div>
+              <div className="text-sm text-slate-400 mt-1">Setting up interactive features</div>
+            </div>
+            <div className="flex space-x-1">
+              <div className="w-2 h-2 bg-teal-400/60 rounded-full animate-pulse"></div>
+              <div className="w-2 h-2 bg-teal-400/60 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+              <div className="w-2 h-2 bg-teal-400/60 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+            </div>
+          </div>
         </div>
       )}
+
+      <style jsx>{`
+        .custom-marker-container {
+          position: relative;
+          width: 24px;
+          height: 32px;
+        }
+        
+        .custom-marker-pin {
+          position: absolute;
+          width: 24px;
+          height: 24px;
+          background: linear-gradient(135deg, #14b8a6 0%, #0f766e 100%);
+          border: 2px solid white;
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg);
+          top: 0;
+          left: 0;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .custom-marker-dot {
+          position: absolute;
+          width: 8px;
+          height: 8px;
+          background: white;
+          border-radius: 50%;
+          top: 4px;
+          left: 4px;
+          transform: rotate(45deg);
+        }
+        
+        :global(.custom-popup .leaflet-popup-content-wrapper) {
+          background: white;
+          border-radius: 12px;
+          padding: 10px;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+          border: 1px solid rgba(229, 231, 235, 0.8);
+        }
+        
+        :global(.custom-popup .leaflet-popup-content) {
+          margin: 0;
+          line-height: 1.4;
+        }
+        
+        :global(.custom-popup .leaflet-popup-tip) {
+          background: white;
+          border: 1px solid rgba(229, 231, 235, 0.8);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        :global(.leaflet-control-zoom) {
+          border: none !important;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+        }
+        
+        :global(.leaflet-control-zoom a) {
+          background: rgba(30, 41, 59, 0.9) !important;
+          color: #14b8a6 !important;
+          border: none !important;
+          font-weight: bold !important;
+          transition: all 0.2s ease !important;
+          backdrop-filter: blur(8px) !important;
+        }
+        
+        :global(.leaflet-control-zoom a:hover) {
+          background: rgba(20, 184, 166, 0.9) !important;
+          color: white !important;
+        }
+      `}</style>
     </div>
   );
 };

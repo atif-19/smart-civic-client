@@ -4,7 +4,10 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { useMap, useMapEvents } from "react-leaflet";
 import * as L from "leaflet";
 
-// Type definitions for the leaflet.heat plugin
+// ========================================================================================
+// Type Definitions
+// ========================================================================================
+
 interface HeatLayerOptions {
   radius?: number;
   blur?: number;
@@ -12,8 +15,7 @@ interface HeatLayerOptions {
   minOpacity?: number;
 }
 
-// Extended types for leaflet.heat
-interface ExtendedHeatLayer  {
+interface ExtendedHeatLayer {
   setLatLngs(latlngs: L.LatLngExpression[]): this;
   setOptions(options: HeatLayerOptions): this;
   _map?: L.Map;
@@ -27,105 +29,163 @@ declare module "leaflet" {
   ): ExtendedHeatLayer;
 }
 
-type HeatmapProps = {
+interface HeatmapProps {
   points: [number, number, number][];
+}
+
+// ========================================================================================
+// Constants
+// ========================================================================================
+
+const MOBILE_BREAKPOINT = 768;
+const INIT_DELAY = 50;
+const UPDATE_DELAY = 50;
+const CONTAINER_CHECK_RETRY_DELAY = 100;
+
+const DEFAULT_OPTIONS: HeatLayerOptions = {
+  radius: 25,
+  blur: 15,
+  minOpacity: 0.4,
 };
 
+// ========================================================================================
+// Helper Functions
+// ========================================================================================
+
+const isMobileDevice = (): boolean => {
+  return typeof window !== "undefined" && window.innerWidth < MOBILE_BREAKPOINT;
+};
+
+const isValidPoint = (point: unknown): point is [number, number, number] => {
+  if (!Array.isArray(point) || point.length < 2) return false;
+  
+  const [lat, lng] = point;
+  return (
+    typeof lat === "number" &&
+    typeof lng === "number" &&
+    !isNaN(lat) &&
+    !isNaN(lng) &&
+    lat >= -90 &&
+    lat <= 90 &&
+    lng >= -180 &&
+    lng <= 180
+  );
+};
+
+const filterValidPoints = (points: [number, number, number][]): [number, number, number][] => {
+  return points.filter(isValidPoint);
+};
+
+const hasValidMapContainer = (map: L.Map): boolean => {
+  const container = map.getContainer();
+  return !!(
+    container &&
+    container.offsetWidth > 0 &&
+    container.offsetHeight > 0
+  );
+};
+
+// ========================================================================================
+// Main Component
+// ========================================================================================
+
 const Heatmap = ({ points }: HeatmapProps) => {
+  // --------------------------------------------------------------------------------------
+  // Hooks & State
+  // --------------------------------------------------------------------------------------
+  
   const map = useMap();
   const heatLayerRef = useRef<ExtendedHeatLayer | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [isClient, setIsClient] = useState(false);
 
-  // Ensure we're on the client side
+  // --------------------------------------------------------------------------------------
+  // Effects - Initialization
+  // --------------------------------------------------------------------------------------
+  
   useEffect(() => {
     setIsClient(true);
     setIsMounted(true);
   }, []);
 
+  // --------------------------------------------------------------------------------------
+  // Responsive Options Calculator
+  // --------------------------------------------------------------------------------------
+  
   const getResponsiveOptions = useCallback((): HeatLayerOptions => {
-    if (!map || !isClient) return { radius: 25, blur: 15 };
+    if (!map || !isClient) return DEFAULT_OPTIONS;
 
     try {
       const zoom = map.getZoom();
-      const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+      const isMobile = isMobileDevice();
 
+      // Low zoom level (zoomed out)
       if (zoom <= 11) {
         return {
           radius: isMobile ? 20 : 30,
           blur: isMobile ? 12 : 20,
           minOpacity: 0.4,
         };
-      } else if (zoom <= 14) {
+      }
+      
+      // Medium zoom level
+      if (zoom <= 14) {
         return {
           radius: isMobile ? 12 : 20,
           blur: isMobile ? 8 : 12,
           minOpacity: 0.4,
         };
-      } else {
-        return {
-          radius: isMobile ? 8 : 12,
-          blur: isMobile ? 6 : 10,
-          minOpacity: 0.4,
-        };
       }
+      
+      // High zoom level (zoomed in)
+      return {
+        radius: isMobile ? 8 : 12,
+        blur: isMobile ? 6 : 10,
+        minOpacity: 0.4,
+      };
     } catch (error) {
       console.error("Error getting responsive options:", error);
-      return { radius: 25, blur: 15, minOpacity: 0.4 };
+      return DEFAULT_OPTIONS;
     }
   }, [map, isClient]);
 
-  // Effect to create and remove the layer
+  // --------------------------------------------------------------------------------------
+  // Heat Layer Initialization & Cleanup
+  // --------------------------------------------------------------------------------------
+  
   useEffect(() => {
     if (!isMounted || !isClient || !map) return;
 
-    const initializeHeatLayer = async () => {
+    const initializeHeatLayer = async (): Promise<void> => {
       try {
         // Dynamic import to ensure leaflet.heat is available
         await import("leaflet.heat");
         const LeafletLib = (window as { L?: typeof L }).L;
 
-        if (!LeafletLib || !LeafletLib.heatLayer) {
+        if (!LeafletLib?.heatLayer) {
           console.error("Leaflet heatLayer not available");
           return;
         }
 
-        // Wait for map container to have proper dimensions
-        const checkMapSize = () => {
-          const container = map.getContainer();
-          if (
-            container &&
-            container.offsetWidth > 0 &&
-            container.offsetHeight > 0
-          ) {
-            // Validate and filter points
-            const validPoints = points.filter(
-              (point) =>
-                Array.isArray(point) &&
-                point.length >= 2 &&
-                typeof point[0] === "number" &&
-                typeof point[1] === "number" &&
-                !isNaN(point[0]) &&
-                !isNaN(point[1]) &&
-                point[0] >= -90 &&
-                point[0] <= 90 &&
-                point[1] >= -180 &&
-                point[1] <= 180
-            );
-
+        // Ensure map container has proper dimensions before proceeding
+        const checkMapSize = (): void => {
+          if (hasValidMapContainer(map)) {
+            const validPoints = filterValidPoints(points);
             const options = getResponsiveOptions();
+            
             heatLayerRef.current = LeafletLib.heatLayer(validPoints, options);
 
             if (map && heatLayerRef.current) {
-map.addLayer(heatLayerRef.current as unknown as L.Layer);            }
+              map.addLayer(heatLayerRef.current as unknown as L.Layer);
+            }
           } else {
             // Retry after container is ready
-            setTimeout(checkMapSize, 100);
+            setTimeout(checkMapSize, CONTAINER_CHECK_RETRY_DELAY);
           }
         };
 
         // Small delay to ensure map is fully rendered
-        setTimeout(checkMapSize, 50);
+        setTimeout(checkMapSize, INIT_DELAY);
       } catch (error) {
         console.error("Error initializing heat layer:", error);
       }
@@ -133,10 +193,12 @@ map.addLayer(heatLayerRef.current as unknown as L.Layer);            }
 
     initializeHeatLayer();
 
+    // Cleanup function
     return () => {
       if (heatLayerRef.current && map) {
         try {
-map.removeLayer(heatLayerRef.current as unknown as L.Layer);          heatLayerRef.current = null;
+          map.removeLayer(heatLayerRef.current as unknown as L.Layer);
+          heatLayerRef.current = null;
         } catch (error) {
           console.error("Error removing heat layer:", error);
         }
@@ -144,50 +206,36 @@ map.removeLayer(heatLayerRef.current as unknown as L.Layer);          heatLayerR
     };
   }, [map, isMounted, isClient, getResponsiveOptions, points]);
 
-  // Effect to update the points when data changes
+  // --------------------------------------------------------------------------------------
+  // Points Update Handler
+  // --------------------------------------------------------------------------------------
+  
   useEffect(() => {
     if (!isMounted || !isClient || !heatLayerRef.current || !points) return;
 
     try {
       // Ensure map container has proper dimensions
-      const container = map.getContainer();
-      if (
-        !container ||
-        container.offsetWidth === 0 ||
-        container.offsetHeight === 0
-      ) {
-        return;
-      }
+      if (!hasValidMapContainer(map)) return;
 
-      // Validate and filter points
-      const validPoints = points.filter(
-        (point) =>
-          Array.isArray(point) &&
-          point.length >= 2 &&
-          typeof point[0] === "number" &&
-          typeof point[1] === "number" &&
-          !isNaN(point[0]) &&
-          !isNaN(point[1]) &&
-          point[0] >= -90 &&
-          point[0] <= 90 &&
-          point[1] >= -180 &&
-          point[1] <= 180
-      );
+      const validPoints = filterValidPoints(points);
 
       if (heatLayerRef.current.setLatLngs) {
         // Small delay to ensure canvas is ready
         setTimeout(() => {
-          if (heatLayerRef.current && heatLayerRef.current.setLatLngs) {
+          if (heatLayerRef.current?.setLatLngs) {
             heatLayerRef.current.setLatLngs(validPoints);
           }
-        }, 50);
+        }, UPDATE_DELAY);
       }
     } catch (error) {
       console.error("Error updating heat layer points:", error);
     }
   }, [points, isMounted, isClient, map]);
 
-  // Hook to update options dynamically on zoom (with error handling)
+  // --------------------------------------------------------------------------------------
+  // Zoom Event Handler
+  // --------------------------------------------------------------------------------------
+  
   useMapEvents({
     zoomend: () => {
       if (!isMounted || !isClient || !heatLayerRef.current) return;
@@ -203,6 +251,7 @@ map.removeLayer(heatLayerRef.current as unknown as L.Layer);          heatLayerR
     },
   });
 
+  // Component renders nothing (purely functional)
   return null;
 };
 

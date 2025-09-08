@@ -150,61 +150,209 @@ export default function ReportIssuePage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-900 text-slate-100 p-4 font-sans">
-      <div className="w-full max-w-lg rounded-2xl bg-slate-800 p-6 sm:p-8 shadow-2xl">
-        <header className="relative mb-8 text-center">
-          <Link href="/" className="absolute left-0 top-1 text-slate-400 hover:text-teal-400 transition-colors">
-            &larr; Back to Feed
-          </Link>
-          <h1 className="text-3xl font-bold text-teal-400">Report a New Issue</h1>
-        </header>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="image-upload" className="block text-sm font-medium text-slate-300 mb-2 flex items-center">
-              <Upload className="mr-2 h-5 w-5 text-teal-400" />
-              Upload Photo
-            </label>
-            <div className={`relative flex justify-center items-center h-48 rounded-lg border-2 border-dashed ${imagePreview ? "border-teal-500" : "border-slate-600"} bg-slate-700/50`}>
-              {imagePreview ? (
-                <Image src={imagePreview} alt="Issue preview" layout="fill" className="object-cover rounded-lg" />
-              ) : (
-                <div className="text-center text-slate-400">
-                  <p>Click or drag to upload</p>
-                  <p className="text-xs">PNG or JPG</p>
+    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-100 p-3 sm:p-4 md:p-6 font-sans relative overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `radial-gradient(circle at 2px 2px, rgba(148, 163, 184, 0.3) 1px, transparent 0)`,
+          backgroundSize: '24px 24px'
+        }}></div>
+      </div>
+      
+      <div className="w-full max-w-lg relative z-10">
+        <div className="rounded-3xl bg-slate-800/60 backdrop-blur-xl p-6 sm:p-8 shadow-2xl shadow-slate-900/50 border border-slate-700/50 hover:shadow-3xl transition-all duration-300">
+          <header className="relative mb-8 text-center">
+            <Link 
+              href="/" 
+              className="absolute left-0 top-1 flex items-center text-slate-400 hover:text-teal-400 transition-all duration-200 hover:-translate-x-1 group"
+            >
+              <svg className="w-4 h-4 mr-1 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              <span className="text-sm font-medium">Back to Feed</span>
+            </Link>
+            
+            <div className="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-teal-400 to-teal-600 rounded-2xl mb-4 shadow-lg shadow-teal-500/20">
+              <svg className="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-teal-300 via-teal-400 to-cyan-400 bg-clip-text text-transparent">
+              Report a New Issue
+            </h1>
+            <div className="w-16 h-0.5 bg-gradient-to-r from-teal-400 to-cyan-400 mx-auto mt-3 rounded-full"></div>
+          </header>
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Image Upload Section */}
+            <div className="group">
+              <label htmlFor="image-upload" className="block text-sm font-semibold text-slate-300 mb-3 flex items-center">
+                <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-teal-500/20 mr-3">
+                  <Upload className="h-4 w-4 text-teal-400" />
                 </div>
-              )}
-              <input id="image-upload" type="file" className="absolute top-0 left-0 h-full w-full opacity-0 cursor-pointer" onChange={handleImageChange} accept="image/png, image/jpeg" />
+                Upload Photo
+              </label>
+              <div className={`relative flex justify-center items-center h-48 sm:h-52 rounded-2xl border-2 border-dashed transition-all duration-300 ${
+                imagePreview 
+                  ? "border-teal-500 bg-teal-500/5 shadow-lg shadow-teal-500/10" 
+                  : "border-slate-600 bg-slate-700/30 hover:border-slate-500 hover:bg-slate-700/50"
+              }`}>
+                {imagePreview ? (
+                  <>
+                    <Image src={imagePreview} alt="Issue preview" layout="fill" className="object-cover rounded-2xl" />
+                    <div className="absolute inset-0 bg-black/20 rounded-2xl"></div>
+                    <div className="absolute top-3 right-3 bg-teal-500 text-white rounded-full p-1.5 shadow-lg">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center text-slate-400 group-hover:text-slate-300 transition-colors">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-slate-600/50 flex items-center justify-center group-hover:bg-slate-600/70 transition-colors">
+                      <Upload className="w-6 h-6" />
+                    </div>
+                    <p className="font-medium">Click or drag to upload</p>
+                    <p className="text-xs mt-1 text-slate-500">PNG or JPG up to 10MB</p>
+                  </div>
+                )}
+                <input 
+                  id="image-upload" 
+                  type="file" 
+                  className="absolute inset-0 opacity-0 cursor-pointer" 
+                  onChange={handleImageChange} 
+                  accept="image/png, image/jpeg" 
+                />
+              </div>
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2 flex items-center">
-              <MapPin className="mr-2 h-5 w-5 text-teal-400" />
-              Pinpoint Location
-            </label>
-            <button type="button" onClick={handleGetLocation} disabled={isLocating || !!location} className="flex w-full items-center justify-center rounded-md bg-slate-700 py-3 px-4 font-semibold text-slate-100 hover:bg-slate-600 disabled:opacity-50">
-              {isLocating ? "Locating..." : location ? `Location Captured ✓` : "Get Current Location"}
-            </button>
-          </div>
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-slate-300 mb-2 flex items-center">
-              <FileText className="mr-2 h-5 w-5 text-teal-400" />
-              Description
-            </label>
-            <textarea id="description" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} required className="w-full rounded-md border-slate-600 bg-slate-700 text-slate-100 shadow-sm focus:border-teal-500 focus:ring-teal-500" placeholder="Describe the issue..."/>
-          </div>
-          {feedback.message && (
-            <div className={`flex items-center text-sm ${getFeedbackColor()}`}>
-              {feedback.type === "success" ? <CheckCircle className="mr-2 h-5 w-5" /> : <AlertCircle className="mr-2 h-5 w-5" />}
-              <span>{feedback.message}</span>
+            
+            {/* Location Section */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-300 mb-3 flex items-center">
+                <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-teal-500/20 mr-3">
+                  <MapPin className="h-4 w-4 text-teal-400" />
+                </div>
+                Pinpoint Location
+              </label>
+              <button 
+                type="button" 
+                onClick={handleGetLocation} 
+                disabled={isLocating || !!location} 
+                className={`relative flex w-full items-center justify-center rounded-xl py-3.5 px-4 font-semibold transition-all duration-300 ${
+                  location 
+                    ? "bg-teal-500/20 text-teal-300 border border-teal-500/30" 
+                    : isLocating
+                    ? "bg-slate-700 text-slate-300 cursor-not-allowed"
+                    : "bg-slate-700/70 text-slate-100 hover:bg-slate-600/70 hover:shadow-lg hover:-translate-y-0.5"
+                } disabled:opacity-60`}
+              >
+                {isLocating ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-slate-400 border-t-teal-400 mr-3"></div>
+                    Locating...
+                  </>
+                ) : location ? (
+                  <>
+                    <svg className="w-5 h-5 mr-3 text-teal-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    Location Captured
+                  </>
+                ) : (
+                  <>
+                    <MapPin className="w-5 h-5 mr-3 text-teal-400" />
+                    Get Current Location
+                  </>
+                )}
+              </button>
             </div>
-          )}
-          <div>
-            <button type="submit" disabled={isSubmitting} className="flex w-full items-center justify-center rounded-md bg-teal-500 py-3 px-4 text-lg font-bold text-slate-900 hover:bg-teal-400 disabled:opacity-75 disabled:cursor-not-allowed">
-              <Send className="mr-2 h-5 w-5" />
-              {isSubmitting ? "Analyzing & Submitting..." : "Submit Report"}
-            </button>
-          </div>
-        </form>
+            
+            {/* Description Section */}
+            <div>
+              <label htmlFor="description" className="block text-sm font-semibold text-slate-300 mb-3 flex items-center">
+                <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-teal-500/20 mr-3">
+                  <FileText className="h-4 w-4 text-teal-400" />
+                </div>
+                Description
+              </label>
+              <div className="relative">
+                <textarea 
+                  id="description" 
+                  rows={4} 
+                  value={description} 
+                  onChange={(e) => setDescription(e.target.value)} 
+                  required 
+                  className="w-full rounded-xl border border-slate-600 bg-slate-700/50 backdrop-blur-sm text-slate-100 shadow-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 focus:bg-slate-700/70 transition-all duration-200 resize-none p-4 placeholder-slate-400" 
+                  placeholder="Describe the issue in detail... What happened? When did it occur? Any additional context?"
+                />
+                <div className="absolute bottom-3 right-3 text-xs text-slate-500">
+                  {description.length}/500
+                </div>
+              </div>
+            </div>
+            
+            {/* Feedback Section */}
+            {feedback.message && (
+              <div className={`flex items-start p-4 rounded-xl border transition-all duration-300 ${
+                feedback.type === "success" 
+                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300" 
+                  : "bg-red-500/10 border-red-500/30 text-red-300"
+              }`}>
+                <div className="flex-shrink-0 mr-3 mt-0.5">
+                  {feedback.type === "success" ? (
+                    <CheckCircle className="h-5 w-5" />
+                  ) : (
+                    <AlertCircle className="h-5 w-5" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <span className="text-sm font-medium">{feedback.message}</span>
+                </div>
+              </div>
+            )}
+            
+            {/* Submit Button */}
+            <div className="pt-2">
+              <button 
+                type="submit" 
+                disabled={isSubmitting} 
+                className="relative flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-teal-500 to-teal-600 py-4 px-4 text-lg font-bold text-slate-900 hover:from-teal-400 hover:to-teal-500 disabled:opacity-75 disabled:cursor-not-allowed transition-all duration-300 hover:shadow-xl hover:shadow-teal-500/25 hover:-translate-y-0.5 active:translate-y-0 group overflow-hidden"
+              >
+                {/* Button background animation */}
+                <div className="absolute inset-0 bg-gradient-to-r from-teal-400 to-teal-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                
+                <div className="relative flex items-center">
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-slate-700 border-t-transparent mr-3"></div>
+                      Analyzing & Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="mr-3 h-5 w-5 group-hover:translate-x-1 transition-transform duration-200" />
+                      Submit Report
+                    </>
+                  )}
+                </div>
+              </button>
+            </div>
+          </form>
+        </div>
+        
+        {/* Helper Text */}
+        <div className="mt-6 text-center">
+          <p className="text-sm text-slate-500">
+            Your report helps improve our community. All submissions are reviewed by our team.
+          </p>
+        </div>
+      </div>
+      
+      {/* Floating particles effect */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-teal-400/20 rounded-full animate-ping"></div>
+        <div className="absolute top-3/4 right-1/4 w-1 h-1 bg-cyan-400/30 rounded-full animate-pulse"></div>
+        <div className="absolute bottom-1/4 left-1/3 w-1.5 h-1.5 bg-teal-300/20 rounded-full animate-bounce"></div>
       </div>
     </main>
   );
