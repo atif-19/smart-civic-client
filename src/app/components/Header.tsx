@@ -45,7 +45,7 @@ export default function Header() {
                 className="group flex items-center space-x-3 text-xl font-bold text-white hover:text-teal-300 transition-all duration-300"
               >
                 <div className="w-10 h-10 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all duration-300">
-                  <span className="text-lg">🏛️</span>
+                  <img src="favicon.ico" alt="" />
                 </div>
                 <span className="bg-gradient-to-r from-teal-400 to-cyan-400 bg-clip-text text-transparent">
                   Smart Civic Reporting

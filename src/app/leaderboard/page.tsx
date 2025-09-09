@@ -38,9 +38,24 @@ export default function LeaderboardPage() {
 
   if (isLoading) {
     return (
-      <main className="bg-slate-900 min-h-screen flex items-center justify-center">
-        <div className="text-center p-10 text-white">Loading Leaderboard...</div>
-      </main>
+      <main className="bg-slate-900 min-h-screen flex items-center justify-center text-white p-4 relative overflow-hidden">
+      {/* Animated background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 via-transparent to-purple-900/10 animate-pulse"></div>
+      
+      {/* Loading content */}
+      <div className="relative z-10 flex flex-col items-center space-y-6">
+        {/* Spinner */}
+        <div className="relative">
+          <div className="w-16 h-16 border-4 border-slate-700 border-t-blue-500 rounded-full animate-spin"></div>
+          <div className="absolute top-2 left-2 w-12 h-12 border-4 border-slate-800 border-t-purple-500 rounded-full animate-spin" style={{animationDirection: 'reverse'}}></div>
+        </div>
+        
+        {/* Text */}
+        <div className="text-center">
+          <h1 className="text-xl font-light tracking-wide animate-pulse">Loading Leaderboard...</h1>
+        </div>
+      </div>
+    </main>
     );
   }
 
