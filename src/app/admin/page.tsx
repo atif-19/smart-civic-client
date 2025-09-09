@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import ClientOnly from "../components/ClientOnly";
+import ClientOnly from "../components/client";
 import {
   ThumbsUp,
   MessageSquare,
