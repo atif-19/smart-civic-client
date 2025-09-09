@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import ClientOnly from "../components/ClientOnly";
 import {
   ThumbsUp,
   MessageSquare,
@@ -10,7 +11,6 @@ import {
   Map as MapIcon,
   X as CloseIcon,
 } from "lucide-react";
-import ClientOnly from "../components/ClientOnly";
 
 // --- Type Definitions ---
 interface User {
@@ -109,22 +109,33 @@ export default function AdminPage() {
     reportId: string,
     newStatus: Report["status"]
   ) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Admin not logged in. Please log in again.");
+      return;
+    }
+
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/reports/${reportId}`,
         {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({ status: newStatus }),
         }
       );
+
       if (!response.ok) throw new Error("Failed to update status");
-      fetchReports(); // Refetch all data to ensure consistency
-    } catch {
+
+      fetchReports();
+    } catch (err) {
+      console.error(err);
       alert("Failed to update status.");
     }
   };
-
   const getStatusColor = (status: Report["status"]) => {
     switch (status) {
       case "submitted":
@@ -161,23 +172,28 @@ export default function AdminPage() {
   if (isLoading)
     return (
       <main className="bg-slate-900 min-h-screen flex items-center justify-center text-white p-4 relative overflow-hidden">
-      {/* Animated background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 via-transparent to-purple-900/10 animate-pulse"></div>
-      
-      {/* Loading content */}
-      <div className="relative z-10 flex flex-col items-center space-y-6">
-        {/* Spinner */}
-        <div className="relative">
-          <div className="w-16 h-16 border-4 border-slate-700 border-t-blue-500 rounded-full animate-spin"></div>
-          <div className="absolute top-2 left-2 w-12 h-12 border-4 border-slate-800 border-t-purple-500 rounded-full animate-spin" style={{animationDirection: 'reverse'}}></div>
+        {/* Animated background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 via-transparent to-purple-900/10 animate-pulse"></div>
+
+        {/* Loading content */}
+        <div className="relative z-10 flex flex-col items-center space-y-6">
+          {/* Spinner */}
+          <div className="relative">
+            <div className="w-16 h-16 border-4 border-slate-700 border-t-blue-500 rounded-full animate-spin"></div>
+            <div
+              className="absolute top-2 left-2 w-12 h-12 border-4 border-slate-800 border-t-purple-500 rounded-full animate-spin"
+              style={{ animationDirection: "reverse" }}
+            ></div>
+          </div>
+
+          {/* Text */}
+          <div className="text-center">
+            <h1 className="text-xl font-light tracking-wide animate-pulse">
+              Loading Reports...
+            </h1>
+          </div>
         </div>
-        
-        {/* Text */}
-        <div className="text-center">
-          <h1 className="text-xl font-light tracking-wide animate-pulse">Loading Reports...</h1>
-        </div>
-      </div>
-    </main>
+      </main>
     );
   if (error)
     return (
@@ -199,7 +215,7 @@ export default function AdminPage() {
                 : "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50"
             }`}
           >
-            <List size={16} /> 
+            <List size={16} />
             <span className="text-sm">Reports</span>
           </button>
           <button
@@ -210,7 +226,7 @@ export default function AdminPage() {
                 : "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50"
             }`}
           >
-            <MapIcon size={16} /> 
+            <MapIcon size={16} />
             <span className="text-sm">Map</span>
           </button>
         </div>
@@ -245,7 +261,11 @@ export default function AdminPage() {
               className="bg-teal-500 hover:bg-teal-400 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 text-sm flex items-center justify-center space-x-1 hover:shadow-lg hover:shadow-teal-500/25"
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                  clipRule="evenodd"
+                />
               </svg>
               <span>New Report</span>
             </Link>
@@ -266,11 +286,21 @@ export default function AdminPage() {
                   <option value="in_progress">In Progress</option>
                   <option value="resolved">Resolved</option>
                 </select>
-                <svg className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <svg
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </div>
-              
+
               <div className="relative">
                 <select
                   value={categoryFilter}
@@ -285,11 +315,21 @@ export default function AdminPage() {
                   <option value="Infrastructure">Infrastructure</option>
                   <option value="Other">Other</option>
                 </select>
-                <svg className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <svg
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </div>
-              
+
               <div className="relative">
                 <select
                   value={sortBy}
@@ -299,8 +339,18 @@ export default function AdminPage() {
                   <option value="upvotes">Most Upvoted</option>
                   <option value="recent">Most Recent</option>
                 </select>
-                <svg className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <svg
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </div>
             </div>
@@ -326,28 +376,45 @@ export default function AdminPage() {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200 flex items-center justify-center">
-                        <svg className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        <svg
+                          className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                          />
                         </svg>
                       </div>
                     </div>
                   </button>
-                  
+
                   {/* Content - Better organized */}
                   <div className="flex-1 min-w-0">
                     {/* Top row: Category and Stats */}
                     <div className="flex items-start justify-between mb-2">
-                      <span className={`inline-block text-xs font-medium px-2 py-1 rounded ${
-                        report.category === 'Roads' ? 'bg-orange-900/50 text-orange-300' :
-                        report.category === 'Electrical' ? 'bg-yellow-900/50 text-yellow-300' :
-                        report.category === 'Sanitation' ? 'bg-green-900/50 text-green-300' :
-                        report.category === 'Environment' ? 'bg-blue-900/50 text-blue-300' :
-                        report.category === 'Infrastructure' ? 'bg-purple-900/50 text-purple-300' :
-                        'bg-slate-700 text-slate-300'
-                      }`}>
+                      <span
+                        className={`inline-block text-xs font-medium px-2 py-1 rounded ${
+                          report.category === "Roads"
+                            ? "bg-orange-900/50 text-orange-300"
+                            : report.category === "Electrical"
+                            ? "bg-yellow-900/50 text-yellow-300"
+                            : report.category === "Sanitation"
+                            ? "bg-green-900/50 text-green-300"
+                            : report.category === "Environment"
+                            ? "bg-blue-900/50 text-blue-300"
+                            : report.category === "Infrastructure"
+                            ? "bg-purple-900/50 text-purple-300"
+                            : "bg-slate-700 text-slate-300"
+                        }`}
+                      >
                         {report.category}
                       </span>
-                      
+
                       <div className="flex items-center space-x-3 text-xs">
                         <button
                           onClick={() => handleViewComments(report)}
@@ -362,18 +429,18 @@ export default function AdminPage() {
                         </span>
                       </div>
                     </div>
-                    
+
                     {/* Description */}
                     <p className="text-sm text-slate-200 mb-2 line-clamp-2 leading-relaxed">
                       {report.description}
                     </p>
-                    
+
                     {/* Bottom row: Date and Status */}
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-slate-500">
                         {new Date(report.createdAt).toLocaleDateString()}
                       </p>
-                      
+
                       <div className="relative">
                         <select
                           value={report.status}
@@ -392,8 +459,18 @@ export default function AdminPage() {
                           <option value="in_progress">In Progress</option>
                           <option value="resolved">Resolved</option>
                         </select>
-                        <svg className="absolute right-1 top-1/2 -translate-y-1/2 w-2 h-2 pointer-events-none opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+                        <svg
+                          className="absolute right-1 top-1/2 -translate-y-1/2 w-2 h-2 pointer-events-none opacity-70"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={3}
+                            d="M19 9l-7 7-7-7"
+                          />
                         </svg>
                       </div>
                     </div>
@@ -401,17 +478,29 @@ export default function AdminPage() {
                 </div>
               </div>
             ))}
-            
+
             {/* Empty State */}
             {filteredReports.length === 0 && (
               <div className="text-center py-12">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-lg bg-slate-800 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  <svg
+                    className="w-6 h-6 text-slate-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
                   </svg>
                 </div>
                 <p className="text-slate-400">No reports found</p>
-                <p className="text-slate-600 text-sm mt-1">Try adjusting your filters</p>
+                <p className="text-slate-600 text-sm mt-1">
+                  Try adjusting your filters
+                </p>
               </div>
             )}
           </div>
@@ -454,7 +543,10 @@ export default function AdminPage() {
             <div className="p-4 border-b border-slate-700 flex justify-between items-start">
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-slate-100 mb-1">
-                  Comments: <span className="text-teal-400">{viewingCommentsFor.category}</span>
+                  Comments:{" "}
+                  <span className="text-teal-400">
+                    {viewingCommentsFor.category}
+                  </span>
                 </h3>
                 <p className="text-sm text-slate-400 truncate">
                   {viewingCommentsFor.description}
@@ -467,7 +559,7 @@ export default function AdminPage() {
                 <CloseIcon size={18} />
               </button>
             </div>
-            
+
             {/* Comments */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {isCommentsLoading ? (
@@ -477,18 +569,25 @@ export default function AdminPage() {
                 </div>
               ) : currentComments.length > 0 ? (
                 currentComments.map((comment) => (
-                  <div key={comment._id} className="bg-slate-700/50 p-3 rounded-lg">
+                  <div
+                    key={comment._id}
+                    className="bg-slate-700/50 p-3 rounded-lg"
+                  >
                     <div className="flex items-start space-x-2">
                       <div className="w-6 h-6 bg-teal-500 rounded-full flex items-center justify-center flex-shrink-0">
                         <span className="text-white text-xs font-medium">
-                          {(comment.submittedBy?.email || 'A').charAt(0).toUpperCase()}
+                          {(comment.submittedBy?.email || "A")
+                            .charAt(0)
+                            .toUpperCase()}
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-slate-200 text-xs font-medium">
                           {comment.submittedBy?.email || "Anonymous"}
                         </p>
-                        <p className="text-slate-300 text-sm mt-1">{comment.text}</p>
+                        <p className="text-slate-300 text-sm mt-1">
+                          {comment.text}
+                        </p>
                         <p className="text-slate-500 text-xs mt-1">
                           {new Date(comment.createdAt).toLocaleString()}
                         </p>
@@ -503,7 +602,7 @@ export default function AdminPage() {
                 </div>
               )}
             </div>
-            
+
             {/* Footer */}
             <div className="p-4 border-t border-slate-700">
               <button
