@@ -13,7 +13,8 @@ import {
   LineChart,
   Line,
 } from "recharts";
-import { FileText, Clock, CheckCircle, PieChart } from "lucide-react";
+import { FileText, Clock, CheckCircle, PieChart,BrainCircuit } from "lucide-react";
+
 
 interface AnalyticsData {
   totalReports: number;
@@ -23,28 +24,28 @@ interface AnalyticsData {
   reportsLast7Days: { _id: string; count: number }[];
 }
 
+interface Hotspot {
+    _id: { locationGrid: { lat: number, lng: number }, parentCategory: string };
+    count: number;
+    avgLat: number;
+    avgLng: number;
+}
+
 export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
+  
+useEffect(() => {
     const fetchData = async () => {
-      const token = localStorage.getItem("token");
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/analytics/summary`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        if (!response.ok) throw new Error("Failed to fetch analytics");
-        const result = await response.json();
-        setData(result);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setIsLoading(false);
-      }
+      const token = localStorage.getItem('token');
+      // Fetch both summary and predictive data
+      const [summaryRes, predictiveRes] = await Promise.all([
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/analytics/summary`, { headers: { 'Authorization': `Bearer ${token}` }}),
+          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/analytics/predictive-hotspots`, { headers: { 'Authorization': `Bearer ${token}` }})
+      ]);
+      
+      if (summaryRes.ok) setData(await summaryRes.json());
+      setIsLoading(false);
     };
     fetchData();
   }, []);
@@ -167,6 +168,8 @@ export default function AnalyticsPage() {
           shadowColor="purple"
         />
       </div>
+
+       
 
       {/* Charts */}
       <div className="relative z-10 grid grid-cols-1 xl:grid-cols-2 gap-6 sm:gap-8">

@@ -4,6 +4,7 @@ import { useState, useEffect, FormEvent, useCallback } from 'react';
 import { useAuth } from './context/AuthContext';
 import { ThumbsUp, Plus, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
+import { ShieldAlert, ShieldCheck, Shield } from 'lucide-react'; // Import new icons
 
 // --- Type Definitions ---
 interface User {
@@ -16,8 +17,11 @@ interface Comment {
   submittedBy: User;
   createdAt: string;
 }
+// --- UPDATED INTERFACE ---
 interface Report {
   _id: string;
+    parentCategory: string; // Add parentCategory
+
   category: string;
   description: string;
   imageUrl: string;
@@ -26,8 +30,8 @@ interface Report {
   submittedBy: User;
   createdAt: string;
   commentCount: number;
+  priority: 'High' | 'Medium' | 'Low'; // Add priority
 }
-
 // --- A self-contained component for a single report card ---
 const ReportCard = ({ initialReport, currentUser, onUpdate }: { initialReport: Report, currentUser: User | null, onUpdate: () => void }) => {
   const [report, setReport] = useState(initialReport);
@@ -44,19 +48,35 @@ const ReportCard = ({ initialReport, currentUser, onUpdate }: { initialReport: R
   const userHasUpvoted = currentUser && report.upvotes ? report.upvotes.includes(currentUser._id) : false;
 
   const handleUpvote = async () => {
-    if (!currentUser) return alert('You must be logged in to upvote.');
-    const token = localStorage.getItem('token');
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reports/${report._id}/upvote`, {
-        method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error('Failed to upvote');
-      onUpdate(); // Trigger a refetch of all reports
-    } catch (err) {
-      alert('Failed to upvote.');
+  if (!currentUser) return alert('You must be logged in to upvote.');
+
+  // 1. Instantly update the UI
+  const originalReport = { ...report };
+  const newUpvoteCount = userHasUpvoted ? report.upvoteCount - 1 : report.upvoteCount + 1;
+  const newUpvotes = userHasUpvoted
+    ? report.upvotes.filter(id => id !== currentUser._id)
+    : [...report.upvotes, currentUser._id];
+  
+  setReport({ ...report, upvoteCount: newUpvoteCount, upvotes: newUpvotes });
+
+  // 2. Send the request to the server in the background
+  const token = localStorage.getItem('token');
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reports/${report._id}/upvote`, {
+      method: 'PATCH',
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+
+    if (!response.ok) {
+      // 3. If the server fails, revert the change
+      throw new Error('Failed to upvote');
     }
-  };
+  } catch (err) {
+    // 3. If the server fails, revert the change
+    alert('Failed to upvote.');
+    setReport(originalReport);
+  }
+};
   
   const toggleComments = async () => {
     const shouldShow = !showComments;
@@ -96,6 +116,21 @@ const ReportCard = ({ initialReport, currentUser, onUpdate }: { initialReport: R
       setIsCommenting(false);
     }
   };
+  // --- NEW HELPER ---
+const PriorityBadge = ({ priority }: { priority: Report['priority'] }) => {
+    const priorityMap = {
+        High: { text: 'High Priority', icon: <ShieldAlert size={12}/>, color: 'text-red-400 border-red-500/50 bg-red-500/10' },
+        Medium: { text: 'Medium Priority', icon: <ShieldCheck size={12}/>, color: 'text-orange-400 border-orange-500/50 bg-orange-500/10' },
+        Low: { text: 'Low Priority', icon: <Shield size={12}/>, color: 'text-green-400 border-green-500/50 bg-green-500/10' },
+    };
+    const { text, icon, color } = priorityMap[priority] || priorityMap.Medium;
+    return (
+        <span className={`inline-flex items-center space-x-1 text-xs font-semibold px-2 py-1 rounded-full border ${color}`}>
+            {icon}
+            <span>{text}</span>
+        </span>
+    );
+};
 
   return (
     <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 backdrop-blur-sm rounded-2xl shadow-2xl p-5 md:p-6 border border-slate-700/50 hover:border-slate-600/70 transition-all duration-300 hover:shadow-3xl group">
@@ -136,11 +171,13 @@ const ReportCard = ({ initialReport, currentUser, onUpdate }: { initialReport: R
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-3 py-2 rounded-full shadow-lg border border-teal-400/20 backdrop-blur-sm">
-            {report.category}
+              {initialReport.parentCategory} / {initialReport.category}
           </span>
         </div>
         <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-700/30 px-3 py-2 rounded-full backdrop-blur-sm border border-slate-600/30">
+            <PriorityBadge priority={report.priority} />
           <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-sm shadow-emerald-400/50 animate-pulse"></div>
+          {/* --- NEW: Display the priority badge --- */}
           <span className="truncate">Posted by {report.submittedBy?.email || 'Anonymous'}</span>
         </div>
       </div>

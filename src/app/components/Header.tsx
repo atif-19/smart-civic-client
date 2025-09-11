@@ -65,6 +65,9 @@ export default function Header() {
                 >
                   Leaderboard
                 </Link>
+                 <Link href="/my-reports" className="text-sm font-semibold hover:text-teal-400 transition-colors">
+    My Reports
+  </Link>
                 
                 {isAdmin && (
                   <>
