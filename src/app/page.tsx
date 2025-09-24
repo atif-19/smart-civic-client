@@ -21,7 +21,8 @@ interface Comment {
 interface Report {
   _id: string;
     parentCategory: string; // Add parentCategory
-
+  resolvedImageUrl?: string; // Add the optional resolved image URL
+  status: string;
   category: string;
   description: string;
   imageUrl: string;
@@ -197,6 +198,10 @@ const PriorityBadge = ({ priority }: { priority: Report['priority'] }) => {
           />
         </div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 rounded-xl pointer-events-none"></div>
+
+
+        {/* "After" Image (only if resolved) */}
+        
       </div>
 
       {/* Comments Toggle */}
@@ -403,7 +408,10 @@ export default function HomePage() {
           </h1>
           <p className="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
             Upvote issues and join the discussion to make our community better together.
-          </p>
+          </p>  
+          <Link href="/resolved" className="bg-green-500/80 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-500 transition-colors">
+        View Resolved Issues
+      </Link>
           <div className="w-24 h-1 bg-gradient-to-r from-teal-400 to-cyan-400 mx-auto mt-4 rounded-full"></div>
         </header>
         

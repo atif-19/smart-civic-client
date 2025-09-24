@@ -2,14 +2,17 @@
 
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import ClientOnly from "../components/client";
+import { useRef } from "react";
+import { useRouter } from "next/navigation"; // --- 1. IMPORT THE HOOK ---
+
 import {
   ThumbsUp,
   MessageSquare,
   List,
   Map as MapIcon,
   X as CloseIcon,
+  Router,
 } from "lucide-react";
 
 // --- Type Definitions ---
@@ -62,6 +65,7 @@ export default function AdminPage() {
   );
   const [currentComments, setCurrentComments] = useState<Comment[]>([]);
   const [isCommentsLoading, setIsCommentsLoading] = useState(false);
+  const router = useRouter(); // --- 2. INITIALIZE THE ROUTER ---
 
   const fetchReports = useCallback(async () => {
     try {
@@ -105,10 +109,20 @@ export default function AdminPage() {
     setFilteredReports(reportList);
   }, [statusFilter, categoryFilter, reports, sortBy]);
 
+  const fileInputRef = useRef<HTMLInputElement>(null); // Ref for the hidden file input
+
   const handleStatusChange = async (
     reportId: string,
     newStatus: Report["status"]
   ) => {
+    if (newStatus === "resolved") {
+      // Trigger the hidden file input for this specific report
+      if (fileInputRef.current) {
+        fileInputRef.current.setAttribute("data-report-id", reportId);
+        fileInputRef.current.click();
+      }
+      return;
+    }
     const token = localStorage.getItem("token");
     if (!token) {
       alert("Admin not logged in. Please log in again.");
@@ -256,8 +270,8 @@ export default function AdminPage() {
               </h1>
               <p className="text-slate-500 text-xs">Manage community reports</p>
             </div>
-            <Link
-              href="/report"
+            <button
+              onClick={() => router.push("/report")}
               className="bg-teal-500 hover:bg-teal-400 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 text-sm flex items-center justify-center space-x-1 hover:shadow-lg hover:shadow-teal-500/25"
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -268,7 +282,7 @@ export default function AdminPage() {
                 />
               </svg>
               <span>New Report</span>
-            </Link>
+            </button>
           </div>
 
           {/* Filter Section - Compact dropdowns */}
@@ -444,12 +458,16 @@ export default function AdminPage() {
                       <div className="relative">
                         <select
                           value={report.status}
-                          onChange={(e) =>
-                            handleStatusChange(
-                              report._id,
-                              e.target.value as Report["status"]
-                            )
-                          }
+                          onChange={(e) => {
+                            if (e.target.value === "resolved") {
+                              router.push(`/admin/resolved/${report._id}`);
+                            } else {
+                              handleStatusChange(
+                                report._id,
+                                e.target.value as Report["status"]
+                              );
+                            }
+                          }}
                           className={`text-xs font-medium py-1 pl-2 pr-6 rounded border appearance-none cursor-pointer transition-colors ${getStatusColor(
                             report.status
                           )}`}

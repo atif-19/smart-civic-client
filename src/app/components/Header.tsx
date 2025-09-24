@@ -172,6 +172,15 @@ export default function Header() {
                     Leaderboard
                   </Link>
                   
+                  {/* My Reports Link - Added for mobile */}
+                  <Link 
+                    href="/my-reports" 
+                    onClick={() => setIsMenuOpen(false)} 
+                    className="text-slate-300 hover:text-teal-400 transition-colors duration-300 py-2 px-3 rounded-lg hover:bg-slate-700/50"
+                  >
+                    My Reports
+                  </Link>
+                  
                   {isAdmin && (
                     <>
                       <Link 
