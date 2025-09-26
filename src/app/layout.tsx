@@ -10,7 +10,7 @@ import 'leaflet/dist/leaflet.css';
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Smart Civic Reporting",
+  title: "Civic Catalyst",
   description: "Report civic issues in your city.",
 };
 
