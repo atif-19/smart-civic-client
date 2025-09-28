@@ -12,6 +12,9 @@ import {
   ResponsiveContainer,
   LineChart,
   Line,
+   PieChart as RechartsPieChart, // Renamed to avoid conflict with Lucide icon
+  Pie,
+  Cell,
 } from "recharts";
 import { FileText, Clock, CheckCircle, PieChart,BrainCircuit } from "lucide-react";
 
@@ -83,6 +86,15 @@ useEffect(() => {
     count: item.count,
   }));
 
+  // Status data for pie chart with enhanced colors
+  const statusData = data.statusBreakdown.map((item) => ({
+    name: item._id,
+    value: item.count,
+  }));
+
+  // Beautiful color palette for pie chart
+  const COLORS = ['#14b8a6', '#0ea5e9', '#8b5cf6', '#f59e0b', '#ef4444', '#10b981', '#6366f1', '#f97316'];
+
   // --- NEW: Logic to create a dynamic Y-axis height ---
   // Find the maximum number of reports in any category
   const maxCategoryCount = Math.max(...categoryData.map((c) => c.reports), 0);
@@ -92,6 +104,17 @@ useEffect(() => {
   const maxDailyCount = Math.max(...dailyData.map((d) => d.count), 0);
   const yAxisMaxDaily = Math.ceil(Math.max(5, maxDailyCount) / 2) * 2;
 
+  // Custom label renderer for pie chart
+  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }: any) => {
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
+    const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
+    return (
+      <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central">
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-3 sm:p-6 md:p-8 relative overflow-hidden">
       {/* Enhanced Background Pattern */}
@@ -223,8 +246,8 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* Charts */}
-      <div className="relative z-10 grid grid-cols-1 xl:grid-cols-2 gap-6 sm:gap-8">
+      {/* Charts - First Row */}
+      <div className="relative z-10 grid grid-cols-1 xl:grid-cols-2 gap-6 sm:gap-8 mb-8">
         <div className="group relative bg-gradient-to-br from-slate-800/90 via-slate-800/95 to-slate-900/90 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50 hover:border-teal-500/40 transition-all duration-500 shadow-xl hover:shadow-2xl hover:shadow-teal-500/10 hover:scale-[1.02] transform-gpu">
           <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-teal-400/5 to-cyan-400/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
           <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-teal-500/10 via-transparent to-cyan-500/10 opacity-0 group-hover:opacity-50 transition-opacity duration-700 blur-xl"></div>
@@ -379,6 +402,128 @@ useEffect(() => {
         </div>
       </div>
 
+      {/* Pie Chart - Centered and Full Width */}
+      <div className="relative z-10 mb-8">
+        <div className="group relative bg-gradient-to-br from-slate-800/90 via-slate-800/95 to-slate-900/90 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50 hover:border-purple-500/40 transition-all duration-500 shadow-xl hover:shadow-2xl hover:shadow-purple-500/10 hover:scale-[1.01] transform-gpu max-w-4xl mx-auto">
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-purple-400/5 to-pink-400/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-purple-500/10 via-transparent to-pink-500/10 opacity-0 group-hover:opacity-50 transition-opacity duration-700 blur-xl"></div>
+          
+          <div className="relative z-10">
+            <div className="flex items-center justify-center mb-6 group-hover:transform group-hover:scale-105 transition-transform duration-300">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 via-purple-600 to-pink-500 rounded-xl flex items-center justify-center mr-3 shadow-lg group-hover:shadow-xl group-hover:rotate-6 transition-all duration-500 relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="text-white group-hover:scale-110 transition-transform duration-300 relative z-10">
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <h3 className="text-xl font-bold text-white group-hover:text-purple-300 transition-colors duration-300 drop-shadow-lg">Report Status Distribution</h3>
+            </div>
+            
+            <div className="group-hover:transform group-hover:scale-[1.01] transition-transform duration-300 flex justify-center">
+              <ResponsiveContainer width="100%" height={400}>
+                <RechartsPieChart>
+                  <Pie
+                    data={statusData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={renderCustomLabel}
+                    outerRadius={120}
+                    innerRadius={40}
+                    fill="#8884d8"
+                    dataKey="value"
+                    stroke="rgba(255, 255, 255, 0.1)"
+                    strokeWidth={2}
+                  >
+                    {statusData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={COLORS[index % COLORS.length]}
+                        style={{
+                          filter: "drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3))",
+                          cursor: "pointer"
+                        }}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "rgba(30, 41, 59, 0.95)",
+                      border: "1px solid rgba(139, 92, 246, 0.3)",
+                      borderRadius: "12px",
+                      color: "#f1f5f9",
+                      backdropFilter: "blur(10px)",
+                      boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(139, 92, 246, 0.1)"
+                    }}
+                    formatter={(value, name) => [
+                      <span style={{ color: '#ffffff', fontWeight: 'bold' }}>{value} reports</span>,
+                      <span style={{ color: '#a78bfa', textTransform: 'capitalize' }}>{name}</span>
+                    ]}
+                  />
+                  <Legend 
+                    verticalAlign="bottom" 
+                    height={60}
+                    iconType="circle"
+                    wrapperStyle={{
+                      paddingTop: '20px',
+                      fontSize: '14px',
+                      fontWeight: '500'
+                    }}
+                    formatter={(value) => (
+                      <span style={{ color: '#e2e8f0', textTransform: 'capitalize' }}>{value}</span>
+                    )}
+                  />
+                </RechartsPieChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Status Legend with enhanced styling */}
+            <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {statusData.map((item, index) => (
+                <div 
+                  key={item.name}
+                  className="flex items-center space-x-3 p-3 rounded-xl bg-slate-700/30 backdrop-blur-sm border border-slate-600/30 hover:border-slate-500/50 transition-all duration-300 hover:scale-105 group cursor-pointer"
+                >
+                  <div 
+                    className="w-4 h-4 rounded-full shadow-lg group-hover:scale-110 transition-transform duration-300"
+                    style={{ 
+                      backgroundColor: COLORS[index % COLORS.length],
+                      boxShadow: `0 0 10px ${COLORS[index % COLORS.length]}40`
+                    }}
+                  ></div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-slate-300 text-sm font-medium capitalize truncate group-hover:text-white transition-colors duration-300">
+                      {item.name}
+                    </p>
+                    <p className="text-slate-400 text-xs group-hover:text-slate-300 transition-colors duration-300">
+                      {item.value} reports
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Enhanced floating elements */}
       <div className="absolute top-1/4 left-1/4 w-3 h-3 bg-teal-400/30 rounded-full animate-bounce opacity-60" style={{animationDuration: '4s', animationDelay: '0s'}}></div>
       <div className="absolute top-3/4 right-1/4 w-2 h-2 bg-cyan-400/40 rounded-full animate-pulse opacity-70" style={{animationDuration: '3s', animationDelay: '1s'}}></div>
@@ -388,6 +533,11 @@ useEffect(() => {
       <div className="absolute bottom-1/3 right-1/2 w-1 h-1 bg-cyan-400/30 rounded-full animate-ping opacity-50" style={{animationDuration: '6s', animationDelay: '3s'}}></div>
       <div className="absolute top-2/3 left-1/6 w-1.5 h-1.5 bg-teal-400/25 rounded-full animate-bounce opacity-45" style={{animationDuration: '4.2s', animationDelay: '2.5s'}}></div>
       <div className="absolute bottom-1/6 right-1/5 w-2.5 h-2.5 bg-cyan-500/15 rounded-full animate-pulse opacity-35" style={{animationDuration: '5.5s', animationDelay: '1.8s'}}></div>
+      
+      {/* Additional floating elements for more visual interest */}
+      <div className="absolute top-1/8 left-1/2 w-1 h-1 bg-purple-400/30 rounded-full animate-pulse opacity-50" style={{animationDuration: '3.8s', animationDelay: '0.8s'}}></div>
+      <div className="absolute bottom-1/8 left-1/8 w-2 h-2 bg-pink-400/25 rounded-full animate-bounce opacity-40" style={{animationDuration: '4.5s', animationDelay: '2.2s'}}></div>
+      <div className="absolute top-3/8 right-1/8 w-1.5 h-1.5 bg-indigo-400/35 rounded-full animate-ping opacity-45" style={{animationDuration: '5.2s', animationDelay: '1.2s'}}></div>
     </div>
   );
 }
