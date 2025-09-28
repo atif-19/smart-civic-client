@@ -16,8 +16,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { FileText, Clock, CheckCircle, PieChart,BrainCircuit } from "lucide-react";
-
+import { FileText, Clock, CheckCircle, PieChart } from "lucide-react";
 
 interface AnalyticsData {
   totalReports: number;
@@ -27,11 +26,13 @@ interface AnalyticsData {
   reportsLast7Days: { _id: string; count: number }[];
 }
 
-interface Hotspot {
-    _id: { locationGrid: { lat: number, lng: number }, parentCategory: string };
-    count: number;
-    avgLat: number;
-    avgLng: number;
+interface PieLabelProps {
+  cx: number;
+  cy: number;
+  midAngle: number;
+  innerRadius: number;
+  outerRadius: number;
+  percent: number;
 }
 
 export default function AnalyticsPage() {
@@ -41,11 +42,10 @@ export default function AnalyticsPage() {
 useEffect(() => {
     const fetchData = async () => {
       const token = localStorage.getItem('token');
-      // Fetch both summary and predictive data
-      const [summaryRes, predictiveRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/analytics/summary`, { headers: { 'Authorization': `Bearer ${token}` }}),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/analytics/predictive-hotspots`, { headers: { 'Authorization': `Bearer ${token}` }})
-      ]);
+      // Fetch summary data
+      const summaryRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/analytics/summary`, { 
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       
       if (summaryRes.ok) setData(await summaryRes.json());
       setIsLoading(false);
@@ -105,7 +105,7 @@ useEffect(() => {
   const yAxisMaxDaily = Math.ceil(Math.max(5, maxDailyCount) / 2) * 2;
 
   // Custom label renderer for pie chart
-  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }: any) => {
+  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: PieLabelProps) => {
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
     const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
@@ -115,6 +115,7 @@ useEffect(() => {
       </text>
     );
   };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-3 sm:p-6 md:p-8 relative overflow-hidden">
       {/* Enhanced Background Pattern */}
@@ -277,6 +278,13 @@ useEffect(() => {
             <div className="group-hover:transform group-hover:scale-[1.01] transition-transform duration-300">
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={categoryData}>
+                  <defs key="bar-chart-defs">
+                    <linearGradient key="teal-gradient" id="enhancedTealGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#14b8a6" />
+                      <stop offset="50%" stopColor="#0d9488" />
+                      <stop offset="100%" stopColor="#0f766e" />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid
                     strokeDasharray="3 3"
                     stroke="rgba(148, 163, 184, 0.1)"
@@ -311,13 +319,6 @@ useEffect(() => {
                     maxBarSize={60}
                     radius={[6, 6, 0, 0]}
                   />
-                  <defs>
-                    <linearGradient id="enhancedTealGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#14b8a6" />
-                      <stop offset="50%" stopColor="#0d9488" />
-                      <stop offset="100%" stopColor="#0f766e" />
-                    </linearGradient>
-                  </defs>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -445,7 +446,7 @@ useEffect(() => {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={renderCustomLabel}
+                    
                     outerRadius={120}
                     innerRadius={40}
                     fill="#8884d8"
@@ -474,8 +475,8 @@ useEffect(() => {
                       boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(139, 92, 246, 0.1)"
                     }}
                     formatter={(value, name) => [
-                      <span style={{ color: '#ffffff', fontWeight: 'bold' }}>{value} reports</span>,
-                      <span style={{ color: '#a78bfa', textTransform: 'capitalize' }}>{name}</span>
+                      <span key="value" style={{ color: '#ffffff', fontWeight: 'bold' }}>{value} reports</span>,
+                      <span key="name" style={{ color: '#a78bfa', textTransform: 'capitalize' }}>{name}</span>
                     ]}
                   />
                   <Legend 
@@ -541,61 +542,3 @@ useEffect(() => {
     </div>
   );
 }
-
-// Helper components (Unchanged)
-const StatCard = ({
-  icon,
-  title,
-  value,
-  gradient = "from-teal-500 to-teal-600",
-  shadowColor = "teal",
-}: {
-  icon: React.ReactNode;
-  title: string;
-  value: string | number;
-  gradient?: string;
-  shadowColor?: string;
-}) => (
-  <div className="group bg-slate-800/60 backdrop-blur-sm border border-slate-700/50 p-4 sm:p-6 rounded-2xl shadow-xl shadow-slate-900/20 hover:shadow-2xl hover:shadow-slate-900/30 transition-all duration-300 hover:-translate-y-1 hover:bg-slate-800/80 hover:border-slate-600/50">
-    <div className="flex items-center space-x-4">
-      <div
-        className={`p-3 rounded-xl bg-gradient-to-br ${gradient} shadow-lg shadow-${shadowColor}-500/25 group-hover:shadow-${shadowColor}-500/40 transition-all duration-300 group-hover:scale-110`}
-      >
-        <div className="text-white text-xl sm:text-2xl">{icon}</div>
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs sm:text-sm text-slate-400 font-medium uppercase tracking-wider mb-1">
-          {title}
-        </p>
-        <p className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-100 truncate">
-          {value}
-        </p>
-      </div>
-    </div>
-  </div>
-);
-
-const ChartContainer = ({
-  title,
-  children,
-  icon,
-}: {
-  title: string;
-  children: React.ReactNode;
-  icon?: React.ReactNode;
-}) => (
-  <div className="bg-slate-800/60 backdrop-blur-sm border border-slate-700/50 p-4 sm:p-6 rounded-2xl shadow-xl shadow-slate-900/20 hover:shadow-2xl hover:shadow-slate-900/30 transition-all duration-300 hover:border-slate-600/50">
-    <div className="flex items-center mb-4 sm:mb-6">
-      {icon && (
-        <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center mr-3 shadow-lg shadow-teal-500/20">
-          <div className="text-white">{icon}</div>
-        </div>
-      )}
-      <h2 className="text-lg sm:text-xl font-bold text-slate-100 flex-1">
-        {title}
-      </h2>
-      <div className="w-2 h-2 bg-teal-400 rounded-full animate-pulse"></div>
-    </div>
-    <div className="text-slate-300">{children}</div>
-  </div>
-);
