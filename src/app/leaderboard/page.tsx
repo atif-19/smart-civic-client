@@ -6,6 +6,7 @@ import { Crown } from 'lucide-react';
 interface LeaderboardUser {
   email: string;
   points: number;
+  name: string;
 }
 
 export default function LeaderboardPage() {
@@ -175,7 +176,7 @@ export default function LeaderboardPage() {
                           w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold text-sm md:text-base flex-shrink-0
                           ${isTopThree ? 'bg-gradient-to-r from-teal-400 to-cyan-400 text-white shadow-lg' : 'bg-slate-600 text-slate-200'}
                         `}>
-                          {user.email[0].toUpperCase()}
+                          {user.email.charAt(0).toUpperCase()}
                         </div>
                         
                         {/* Email */}
@@ -183,7 +184,7 @@ export default function LeaderboardPage() {
                           text-sm md:text-base truncate font-medium
                           ${isTopThree ? 'text-white' : 'text-slate-200'}
                         `}>
-                          {user.email}
+                          {user.name} &lt;{user.email}&gt;
                         </span>
                         
                         {/* Badge for top performers */}

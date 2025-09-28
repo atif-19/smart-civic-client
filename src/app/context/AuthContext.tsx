@@ -7,6 +7,7 @@ interface User {
   _id: string;
   email: string;
   points: number;
+  name: string;
 }
 
 interface AuthContextType {

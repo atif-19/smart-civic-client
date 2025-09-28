@@ -134,8 +134,12 @@ const PriorityBadge = ({ priority }: { priority: Report['priority'] }) => {
 };
 
   return (
-    <div className="bg-gradient-to-br from-slate-800/95 to-slate-900/95 backdrop-blur-sm rounded-2xl shadow-2xl p-5 md:p-6 border border-slate-700/50 hover:border-slate-600/70 transition-all duration-300 hover:shadow-3xl group">
-  <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+    <div className="bg-gradient-to-br from-slate-800/95 via-slate-800/90 to-slate-900/95 backdrop-blur-sm rounded-2xl shadow-2xl p-5 md:p-6 border border-slate-700/50 hover:border-slate-600/70 transition-all duration-300 hover:shadow-3xl group relative overflow-hidden">
+  
+  {/* Subtle background pattern */}
+  <div className="absolute inset-0 opacity-[0.02] bg-[radial-gradient(circle_at_50%_50%,_rgba(20,184,166,0.3)_0%,_transparent_50%)]"></div>
+  
+  <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 relative z-10">
     {/* Mobile: Horizontal upvote, Desktop: Vertical upvote */}
     <div className="flex flex-row sm:flex-col items-center justify-start sm:justify-center gap-3 order-2 sm:order-1">
       <button 
@@ -146,22 +150,22 @@ const PriorityBadge = ({ priority }: { priority: Report['priority'] }) => {
         <div className={`
           absolute inset-0 rounded-full transition-all duration-300
           ${userHasUpvoted 
-            ? 'bg-gradient-to-r from-teal-500 to-cyan-500 shadow-lg shadow-teal-500/30' 
-            : 'bg-slate-700/70 hover:bg-gradient-to-r hover:from-teal-500/20 hover:to-cyan-500/20 hover:shadow-lg hover:shadow-teal-500/20'
+            ? 'bg-gradient-to-br from-teal-500 via-teal-400 to-cyan-500 shadow-lg shadow-teal-500/40' 
+            : 'bg-slate-700/80 hover:bg-gradient-to-br hover:from-teal-500/20 hover:to-cyan-500/20 hover:shadow-lg hover:shadow-teal-500/25 border border-slate-600/30'
           }
         `}></div>
         <ThumbsUp
           className={`relative z-10 w-5 h-5 md:w-6 md:h-6 transition-all duration-300 ${
             userHasUpvoted
               ? 'text-white drop-shadow-sm'
-              : 'text-slate-400 hover:text-teal-400 group-hover/upvote:text-teal-300'
+              : 'text-slate-400 hover:text-teal-300 group-hover/upvote:text-teal-200'
           }`}
         />
         {userHasUpvoted && (
-          <div className="absolute -inset-1 bg-gradient-to-r from-teal-400 to-cyan-400 rounded-full blur opacity-40 group-hover/upvote:opacity-60 transition-opacity"></div>
+          <div className="absolute -inset-1 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-full blur opacity-50 group-hover/upvote:opacity-70 transition-opacity"></div>
         )}
       </button>
-      <span className="font-bold text-lg md:text-xl text-white bg-slate-700/60 backdrop-blur-sm px-3 py-2 rounded-full min-w-[3rem] text-center shadow-lg border border-slate-600/30">
+      <span className="font-bold text-lg md:text-xl text-white bg-gradient-to-br from-slate-700/80 to-slate-800/80 backdrop-blur-sm px-3 py-2 rounded-full min-w-[3rem] text-center shadow-lg border border-slate-600/40">
         {report.upvoteCount || 0}
       </span>
     </div>
@@ -171,52 +175,49 @@ const PriorityBadge = ({ priority }: { priority: Report['priority'] }) => {
       {/* Header Meta */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-3 py-2 rounded-full shadow-lg border border-teal-400/20 backdrop-blur-sm">
-              {initialReport.parentCategory} / {initialReport.category}
+          <span className="text-xs font-bold bg-gradient-to-r from-teal-500 via-teal-400 to-cyan-500 text-white px-3 py-2 rounded-full shadow-lg border border-teal-400/30 backdrop-blur-sm relative overflow-hidden">
+            <span className="relative z-10">{initialReport.parentCategory} / {initialReport.category}</span>
+            <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           </span>
         </div>
-        <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-700/30 px-3 py-2 rounded-full backdrop-blur-sm border border-slate-600/30">
-            <PriorityBadge priority={report.priority} />
-          <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-sm shadow-emerald-400/50 animate-pulse"></div>
-          {/* --- NEW: Display the priority badge --- */}
+        <div className="flex items-center gap-2 text-xs text-slate-400 bg-gradient-to-r from-slate-700/40 to-slate-700/20 px-3 py-2 rounded-full backdrop-blur-sm border border-slate-600/40">
+          <PriorityBadge priority={report.priority} />
+          <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-sm shadow-emerald-400/60 animate-pulse"></div>
           <span className="truncate">Posted by {report.submittedBy?.email || 'Anonymous'}</span>
         </div>
       </div>
 
       {/* Description */}
-      <p className="mt-4 text-slate-200 leading-relaxed text-sm md:text-base font-medium tracking-wide">
+      <p className="mt-4 text-slate-200 leading-relaxed text-sm md:text-base font-medium tracking-wide bg-gradient-to-br from-slate-700/20 to-transparent rounded-lg px-4 py-3 border border-slate-700/30">
         {report.description}
       </p>
 
       {/* Image Container */}
-      <div className="mt-6 relative w-full overflow-hidden rounded-xl shadow-2xl group/image bg-gradient-to-br from-slate-700 to-slate-800 p-1">
-        <div className="overflow-hidden rounded-lg">
+      <div className="mt-6 relative w-full overflow-hidden rounded-xl shadow-2xl group/image bg-gradient-to-br from-slate-700/80 to-slate-800/80 p-1 border border-slate-600/30">
+        <div className="overflow-hidden rounded-lg relative">
           <img 
             src={report.imageUrl} 
             alt={report.category} 
             className="w-full h-48 sm:h-56 md:h-64 object-cover transition-all duration-500 hover:scale-105 group-hover/image:brightness-110" 
           />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 rounded-lg pointer-events-none"></div>
         </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 rounded-xl pointer-events-none"></div>
-
-
-        {/* "After" Image (only if resolved) */}
-        
       </div>
 
       {/* Comments Toggle */}
       <div className="mt-6 flex items-center justify-between">
         <button
           onClick={toggleComments}
-          className="flex items-center gap-3 text-sm text-slate-400 hover:text-teal-400 transition-all duration-300 bg-slate-700/40 hover:bg-slate-600/60 px-4 py-3 rounded-full backdrop-blur-sm border border-slate-600/30 hover:border-teal-500/40 group/comments"
+          className="flex items-center gap-3 text-sm text-slate-400 hover:text-teal-300 transition-all duration-300 bg-gradient-to-r from-slate-700/50 to-slate-700/30 hover:from-slate-600/70 hover:to-slate-600/50 px-4 py-3 rounded-full backdrop-blur-sm border border-slate-600/40 hover:border-teal-500/50 group/comments relative overflow-hidden"
         >
-          <MessageSquare className="w-4 h-4 md:w-5 md:h-5 group-hover/comments:text-teal-300 transition-colors" />
-          <span className="font-medium">
+          <MessageSquare className="w-4 h-4 md:w-5 md:h-5 group-hover/comments:text-teal-200 transition-colors relative z-10" />
+          <span className="font-medium relative z-10">
             {showComments ? 'Hide Comments' : `Comments (${report.commentCount || 0})`}
           </span>
+          <div className="absolute inset-0 bg-gradient-to-r from-teal-500/10 to-transparent translate-x-[-100%] group-hover/comments:translate-x-[100%] transition-transform duration-500"></div>
         </button>
         
-        <div className="flex items-center gap-2 text-xs text-slate-500">
+        <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-700/30 px-3 py-2 rounded-full border border-slate-600/20">
           <div className="w-1 h-1 bg-slate-500 rounded-full"></div>
           <span className="hidden sm:inline">Just now</span>
         </div>
@@ -226,7 +227,9 @@ const PriorityBadge = ({ priority }: { priority: Report['priority'] }) => {
 
   {/* Comments Section */}
   {showComments && (
-    <div className="mt-8 pt-6 border-t border-gradient-to-r from-transparent via-slate-600/50 to-transparent">
+    <div className="mt-8 pt-6 border-t border-gradient-to-r from-transparent via-slate-600/50 to-transparent relative">
+      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-0.5 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full"></div>
+      
       {currentUser && (
         <div className="mb-6">
           <div className="flex gap-2 sm:gap-3">
@@ -236,7 +239,7 @@ const PriorityBadge = ({ priority }: { priority: Report['priority'] }) => {
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Share your thoughts..."
-                className="w-full bg-slate-700/60 text-slate-200 rounded-xl px-4 py-3 text-sm border border-slate-600/40 focus:outline-none focus:ring-2 focus:ring-teal-500/60 focus:border-teal-500/60 transition-all duration-300 placeholder-slate-400 backdrop-blur-sm shadow-lg hover:bg-slate-700/80 focus:bg-slate-700/90"
+                className="w-full bg-gradient-to-br from-slate-700/70 to-slate-700/50 text-slate-200 rounded-xl px-4 py-3 text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-teal-500/60 focus:border-teal-500/60 transition-all duration-300 placeholder-slate-400 backdrop-blur-sm shadow-lg hover:from-slate-700/90 hover:to-slate-700/70 focus:from-slate-700/95 focus:to-slate-700/80"
                 disabled={isCommenting}
                 onKeyPress={(e) => e.key === 'Enter' && !isCommenting && handleCommentSubmit(e)}
               />
@@ -244,7 +247,7 @@ const PriorityBadge = ({ priority }: { priority: Report['priority'] }) => {
             </div>
             <button
               onClick={handleCommentSubmit}
-              className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-white font-bold px-4 sm:px-6 py-3 rounded-xl text-sm shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed min-w-[4rem] sm:min-w-[5rem] relative overflow-hidden group/submit"
+              className="bg-gradient-to-r from-teal-500 via-teal-400 to-cyan-500 hover:from-teal-400 hover:via-teal-300 hover:to-cyan-400 text-white font-bold px-4 sm:px-6 py-3 rounded-xl text-sm shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed min-w-[4rem] sm:min-w-[5rem] relative overflow-hidden group/submit border border-teal-400/30"
               disabled={isCommenting}
             >
               <span className="relative z-10">
@@ -255,7 +258,7 @@ const PriorityBadge = ({ priority }: { priority: Report['priority'] }) => {
                 )}
                 {!isCommenting && <span className="sm:hidden">→</span>}
               </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent translate-x-[-100%] group-hover/submit:translate-x-[100%] transition-transform duration-500"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent translate-x-[-100%] group-hover/submit:translate-x-[100%] transition-transform duration-500"></div>
             </button>
           </div>
         </div>
@@ -265,11 +268,12 @@ const PriorityBadge = ({ priority }: { priority: Report['priority'] }) => {
         {comments.map((comment) => (
           <div
             key={comment._id}
-            className="bg-gradient-to-r from-slate-700/40 to-slate-700/20 backdrop-blur-sm p-4 rounded-xl border border-slate-600/30 hover:border-slate-500/50 transition-all duration-300 hover:from-slate-700/60 hover:to-slate-700/40 group/comment"
+            className="bg-gradient-to-br from-slate-700/50 to-slate-700/30 backdrop-blur-sm p-4 rounded-xl border border-slate-600/40 hover:border-slate-500/60 transition-all duration-300 hover:from-slate-700/70 hover:to-slate-700/50 group/comment relative overflow-hidden"
           >
-            <div className="flex items-start gap-3">
-              <div className="w-7 h-7 md:w-8 md:h-8 bg-gradient-to-r from-teal-400 to-cyan-400 rounded-full flex items-center justify-center shadow-lg flex-shrink-0 mt-0.5">
-                <span className="text-white text-xs font-bold">
+            <div className="absolute inset-0 opacity-0 group-hover/comment:opacity-100 bg-gradient-to-r from-teal-500/5 to-transparent transition-opacity duration-300"></div>
+            <div className="flex items-start gap-3 relative z-10">
+              <div className="w-7 h-7 md:w-8 md:h-8 bg-gradient-to-br from-teal-400 via-teal-300 to-cyan-400 rounded-full flex items-center justify-center shadow-lg flex-shrink-0 mt-0.5 border border-teal-300/30">
+                <span className="text-white text-xs font-bold drop-shadow-sm">
                   {(comment.submittedBy?.email || 'U')[0].toUpperCase()}
                 </span>
               </div>
@@ -278,7 +282,7 @@ const PriorityBadge = ({ priority }: { priority: Report['priority'] }) => {
                   <p className="font-bold text-slate-300 text-sm truncate">
                     {comment.submittedBy?.email || 'Anonymous User'}
                   </p>
-                  <span className="text-xs text-slate-500">just now</span>
+                  <span className="text-xs text-slate-500 bg-slate-700/40 px-2 py-1 rounded-full">just now</span>
                 </div>
                 <p className="text-slate-400 text-sm leading-relaxed group-hover/comment:text-slate-300 transition-colors break-words">
                   {comment.text}
@@ -288,10 +292,11 @@ const PriorityBadge = ({ priority }: { priority: Report['priority'] }) => {
           </div>
         ))}
         {comments.length === 0 && (
-          <div className="text-center py-8 bg-slate-700/20 rounded-xl border-2 border-dashed border-slate-600/40">
-            <MessageSquare className="w-8 h-8 md:w-10 md:h-10 text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-500 text-sm font-medium">No comments yet</p>
-            <p className="text-slate-600 text-xs mt-1 px-4">Be the first to share your thoughts!</p>
+          <div className="text-center py-8 bg-gradient-to-br from-slate-700/30 to-slate-700/10 rounded-xl border-2 border-dashed border-slate-600/50 relative overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(20,184,166,0.1)_0%,_transparent_70%)]"></div>
+            <MessageSquare className="w-8 h-8 md:w-10 md:h-10 text-slate-600 mx-auto mb-3 relative z-10" />
+            <p className="text-slate-500 text-sm font-medium relative z-10">No comments yet</p>
+            <p className="text-slate-600 text-xs mt-1 px-4 relative z-10">Be the first to share your thoughts!</p>
           </div>
         )}
       </div>
@@ -301,7 +306,7 @@ const PriorityBadge = ({ priority }: { priority: Report['priority'] }) => {
   <style jsx>{`
     .custom-scrollbar {
       scrollbar-width: thin;
-      scrollbar-color: rgb(71 85 105 / 0.8) transparent;
+      scrollbar-color: rgba(20, 184, 166, 0.8) transparent;
     }
     
     .custom-scrollbar::-webkit-scrollbar {
@@ -309,12 +314,14 @@ const PriorityBadge = ({ priority }: { priority: Report['priority'] }) => {
     }
     
     .custom-scrollbar::-webkit-scrollbar-track {
-      background: transparent;
+      background: rgba(71, 85, 105, 0.1);
+      border-radius: 3px;
     }
     
     .custom-scrollbar::-webkit-scrollbar-thumb {
       background: linear-gradient(to bottom, rgb(20 184 166), rgb(6 182 212));
       border-radius: 3px;
+      border: 1px solid rgba(20, 184, 166, 0.3);
     }
     
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
@@ -322,13 +329,22 @@ const PriorityBadge = ({ priority }: { priority: Report['priority'] }) => {
     }
     
     .shadow-3xl {
-      box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(71, 85, 105, 0.1);
     }
 
     @media (max-width: 640px) {
       .break-words {
         word-break: break-word;
         overflow-wrap: break-word;
+      }
+    }
+
+    /* Performance optimized animations */
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
       }
     }
   `}</style>
@@ -388,37 +404,58 @@ export default function HomePage() {
 
   return (
     <main className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 min-h-screen p-3 sm:p-6 md:p-8 text-slate-100 relative overflow-hidden">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-5">
+      {/* Enhanced Background Pattern */}
+      <div className="absolute inset-0 opacity-[0.03]">
         <div className="absolute inset-0" style={{
-          backgroundImage: `radial-gradient(circle at 2px 2px, rgba(148, 163, 184, 0.3) 1px, transparent 0)`,
-          backgroundSize: '24px 24px'
+          backgroundImage: `radial-gradient(circle at 2px 2px, rgba(20, 184, 166, 0.4) 1px, transparent 0)`,
+          backgroundSize: '32px 32px'
         }}></div>
       </div>
       
+      {/* Subtle animated background orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-teal-500/5 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-cyan-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+      </div>
+      
       <div className="max-w-4xl mx-auto relative z-10">
-        <header className="text-center mb-8 sm:mb-12">
-          <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-teal-400 to-teal-600 rounded-2xl mb-4 shadow-lg shadow-teal-500/20">
-            <svg className="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="currentColor" viewBox="0 0 20 20">
+        <header className="text-center mb-8 sm:mb-12 relative">
+          {/* Icon container with enhanced styling */}
+          <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-teal-400 via-teal-500 to-teal-600 rounded-2xl mb-4 shadow-xl shadow-teal-500/30 border border-teal-400/30 relative overflow-hidden group/icon">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover/icon:opacity-100 transition-opacity duration-300"></div>
+            <svg className="w-8 h-8 sm:w-10 sm:h-10 text-white relative z-10 drop-shadow-sm" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
             </svg>
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-teal-300 via-teal-400 to-cyan-400 bg-clip-text text-transparent mb-3">
+          
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-teal-300 via-teal-400 to-cyan-400 bg-clip-text text-transparent mb-3 relative">
             Community Reports
+            <div className="absolute inset-0 bg-gradient-to-r from-teal-300 via-teal-400 to-cyan-400 bg-clip-text text-transparent blur-sm opacity-50 -z-10">
+              Community Reports
+            </div>
           </h1>
-          <p className="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
+          
+          <p className="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed mb-6 bg-slate-800/20 rounded-xl px-4 py-3 backdrop-blur-sm border border-slate-700/30">
             Upvote issues and join the discussion to make our community better together.
-          </p>  
-          <Link href="/resolved" className="bg-green-500/80 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-500 transition-colors">
-        View Resolved Issues
-      </Link>
-          <div className="w-24 h-1 bg-gradient-to-r from-teal-400 to-cyan-400 mx-auto mt-4 rounded-full"></div>
+          </p>
+          
+          <Link href="/resolved" className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500/90 to-emerald-500/90 hover:from-green-500 hover:to-emerald-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-green-500/25 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300 border border-green-400/30 relative overflow-hidden group/resolved">
+            <span className="relative z-10">View Resolved Issues</span>
+            <svg className="w-4 h-4 relative z-10 transition-transform duration-300 group-hover/resolved:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent translate-x-[-100%] group-hover/resolved:translate-x-[100%] transition-transform duration-500"></div>
+          </Link>
+          
+          <div className="w-24 h-1 bg-gradient-to-r from-teal-400 to-cyan-400 mx-auto mt-6 rounded-full shadow-lg shadow-teal-400/50"></div>
         </header>
         
         <div className="space-y-4 sm:space-y-6">
           {reports.map(report => (
-            <div key={report._id} className="group">
-              <div className="bg-slate-800/60 backdrop-blur-sm border border-slate-700/50 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xl shadow-slate-900/20 hover:shadow-2xl hover:shadow-slate-900/40 transition-all duration-300 hover:bg-slate-800/80 hover:border-slate-600/50 hover:-translate-y-1">
+            <div key={report._id} className="group/report">
+              <div className="bg-gradient-to-br from-slate-800/70 via-slate-800/60 to-slate-800/70 backdrop-blur-sm border border-slate-700/60 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xl shadow-slate-900/30 hover:shadow-2xl hover:shadow-slate-900/50 transition-all duration-300 hover:from-slate-800/90 hover:via-slate-800/80 hover:to-slate-800/90 hover:border-slate-600/70 hover:-translate-y-1 relative overflow-hidden">
+                {/* Subtle hover glow */}
+                <div className="absolute inset-0 bg-gradient-to-r from-teal-500/5 to-cyan-500/5 opacity-0 group-hover/report:opacity-100 transition-opacity duration-300 rounded-2xl sm:rounded-3xl"></div>
                 <ReportCard 
                   key={report._id} 
                   initialReport={report} 
@@ -430,35 +467,43 @@ export default function HomePage() {
           ))}
         </div>
         
-        {/* Empty State */}
+        {/* Enhanced Empty State */}
         {reports.length === 0 && (
-          <div className="text-center py-16 sm:py-24">
-            <div className="w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-6 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700">
-              <svg className="w-10 h-10 sm:w-12 sm:h-12 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="text-center py-16 sm:py-24 relative">
+            <div className="w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-6 rounded-full bg-gradient-to-br from-slate-800/80 to-slate-800/60 flex items-center justify-center border border-slate-700/60 shadow-xl relative overflow-hidden group/empty">
+              <div className="absolute inset-0 bg-gradient-to-br from-teal-500/10 to-cyan-500/10 opacity-0 group-hover/empty:opacity-100 transition-opacity duration-500"></div>
+              <svg className="w-10 h-10 sm:w-12 sm:h-12 text-slate-500 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <h3 className="text-xl sm:text-2xl font-semibold text-slate-300 mb-2">No reports yet</h3>
-            <p className="text-slate-500 max-w-md mx-auto">Be the first to report an issue and help improve our community.</p>
+            <h3 className="text-xl sm:text-2xl font-semibold text-slate-300 mb-2 bg-gradient-to-r from-slate-300 to-slate-400 bg-clip-text text-transparent">
+              No reports yet
+            </h3>
+            <p className="text-slate-500 max-w-md mx-auto bg-slate-800/30 rounded-lg px-4 py-2 border border-slate-700/30">
+              Be the first to report an issue and help improve our community.
+            </p>
           </div>
         )}
       </div>
       
-      {/* Floating Action Button */}
+      {/* Enhanced Floating Action Button */}
       {user && (
         <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 md:bottom-8 md:right-8 z-50">
           <Link 
             href="/report" 
-            className="group relative inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 text-white font-bold rounded-2xl sm:rounded-3xl shadow-2xl shadow-teal-500/30 transition-all duration-300 hover:scale-110 hover:shadow-3xl hover:shadow-teal-500/40 active:scale-105"
+            className="group/fab relative inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-teal-500 via-teal-400 to-teal-600 hover:from-teal-400 hover:via-teal-300 hover:to-teal-500 text-white font-bold rounded-2xl sm:rounded-3xl shadow-2xl shadow-teal-500/40 transition-all duration-300 hover:scale-110 hover:shadow-3xl hover:shadow-teal-500/50 active:scale-105 border border-teal-400/30 overflow-hidden"
           >
-            {/* Pulse effect */}
-            <div className="absolute inset-0 rounded-2xl sm:rounded-3xl bg-teal-400 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
+            {/* Enhanced pulse effect */}
+            <div className="absolute inset-0 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-teal-300/30 to-cyan-300/30 opacity-0 group-hover/fab:opacity-100 transition-opacity duration-300"></div>
+            
+            {/* Animated background shimmer */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover/fab:translate-x-[100%] transition-transform duration-700"></div>
             
             {/* Plus icon */}
-            <Plus size={24} className="sm:w-7 sm:h-7 relative z-10 transition-transform duration-200 group-hover:rotate-90" />
+            <Plus size={24} className="sm:w-7 sm:h-7 relative z-10 transition-all duration-300 group-hover/fab:rotate-90 drop-shadow-sm" />
             
-            {/* Tooltip */}
-            <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-2 bg-slate-800 text-slate-200 text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap shadow-lg border border-slate-700 pointer-events-none">
+            {/* Enhanced Tooltip */}
+            <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-2 bg-gradient-to-r from-slate-800/95 to-slate-700/95 backdrop-blur-sm text-slate-200 text-sm font-medium rounded-lg opacity-0 group-hover/fab:opacity-100 transition-all duration-200 whitespace-nowrap shadow-xl border border-slate-600/50 pointer-events-none">
               Create Report
               <div className="absolute left-full top-1/2 -translate-y-1/2 w-0 h-0 border-l-4 border-l-slate-800 border-y-4 border-y-transparent"></div>
             </div>
@@ -466,8 +511,40 @@ export default function HomePage() {
         </div>
       )}
       
-      {/* Bottom gradient fade */}
-      <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-900 to-transparent pointer-events-none z-10"></div>
+      {/* Enhanced Bottom gradient fade */}
+      <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-900 via-slate-900/50 to-transparent pointer-events-none z-10"></div>
+      
+      <style jsx>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-10px) rotate(1deg); }
+        }
+        
+        .group\\/fab:hover {
+          animation: float 2s ease-in-out infinite;
+        }
+        
+        /* Performance optimized animations */
+        @media (prefers-reduced-motion: reduce) {
+          * {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+          }
+          
+          .group\\/fab:hover {
+            animation: none !important;
+          }
+        }
+        
+        /* Enhanced shadow for 3xl */
+        .shadow-3xl {
+          box-shadow: 
+            0 35px 60px -12px rgba(0, 0, 0, 0.8),
+            0 0 0 1px rgba(20, 184, 166, 0.1),
+            0 4px 16px rgba(20, 184, 166, 0.2);
+        }
+      `}</style>
     </main>
   );
 }

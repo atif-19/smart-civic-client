@@ -7,6 +7,7 @@ import Link from 'next/link';
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [error, setError] = useState('');
   const router = useRouter();
 
@@ -22,7 +23,7 @@ export default function RegisterPage() {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, name}),
       });
 
       const data = await response.json();
@@ -78,6 +79,23 @@ export default function RegisterPage() {
 
           {/* Form */}
           <div className="space-y-6">
+            <div className="space-y-2">
+              <label htmlFor="email" className="block text-sm font-semibold text-slate-300">
+                Name
+              </label>
+              <div className="relative group">
+                <input
+                  id="name"
+                  type="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 bg-slate-700/70 border border-slate-600/50 rounded-xl text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all duration-300 hover:bg-slate-700/90"
+                  placeholder="Enter your name"
+                />
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-500/5 to-teal-500/5 opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+              </div>
+            </div>
             <div className="space-y-2">
               <label htmlFor="email" className="block text-sm font-semibold text-slate-300">
                 Email Address
