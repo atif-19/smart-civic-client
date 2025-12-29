@@ -36,6 +36,8 @@ interface Report {
   createdAt: string;
   upvoteCount: number;
   commentCount: number;
+  pincode: string; // <-- ADD THIS
+  fullAddress: string; // <-- ADD THIS
 }
 
 // Dynamically import the Map component to prevent server-side rendering errors
@@ -216,15 +218,18 @@ export default function AdminPage() {
       </div>
     );
 
- return (
+  return (
     <>
       <main className="flex flex-col md:flex-row h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 font-sans overflow-hidden relative">
         {/* Subtle background pattern */}
         <div className="absolute inset-0 opacity-[0.02]">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `radial-gradient(circle at 2px 2px, rgba(20, 184, 166, 0.3) 1px, transparent 0)`,
-            backgroundSize: '32px 32px'
-          }}></div>
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage: `radial-gradient(circle at 2px 2px, rgba(20, 184, 166, 0.3) 1px, transparent 0)`,
+              backgroundSize: "32px 32px",
+            }}
+          ></div>
         </div>
 
         {/* Enhanced Mobile Tab Navigation */}
@@ -280,18 +285,18 @@ export default function AdminPage() {
         >
           {/* Subtle background effects */}
           <div className="absolute inset-0 bg-gradient-to-br from-teal-500/3 to-cyan-500/3 pointer-events-none"></div>
-          
+
           {/* Enhanced Header Section */}
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-6 pb-4 border-b border-slate-700/60 relative z-10 bg-gradient-to-r from-slate-800/50 to-slate-800/30 backdrop-blur-sm">
             <div className="mb-4 sm:mb-0">
               <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-teal-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent relative">
-                Admin Dashboard
+                 Dashboard
                 <div className="absolute inset-0 bg-gradient-to-r from-teal-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent blur-sm opacity-50 -z-10">
-                  Admin Dashboard
+                   Dashboard
                 </div>
               </h1>
               <p className="text-slate-500 text-sm mt-1 bg-slate-800/30 px-3 py-1 rounded-full inline-block border border-slate-700/30">
-                Manage community reports
+                 community reports
               </p>
             </div>
             <button
@@ -299,7 +304,11 @@ export default function AdminPage() {
               className="bg-gradient-to-r from-teal-500 via-teal-400 to-cyan-500 hover:from-teal-400 hover:via-teal-300 hover:to-cyan-400 text-white font-semibold py-3 px-5 rounded-xl transition-all duration-300 text-sm flex items-center justify-center space-x-2 hover:shadow-xl hover:shadow-teal-500/30 border border-teal-400/30 relative overflow-hidden group/new"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent translate-x-[-100%] group-hover/new:translate-x-[100%] transition-transform duration-500"></div>
-              <svg className="w-4 h-4 relative z-10" fill="currentColor" viewBox="0 0 20 20">
+              <svg
+                className="w-4 h-4 relative z-10"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
                 <path
                   fillRule="evenodd"
                   d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
@@ -310,27 +319,54 @@ export default function AdminPage() {
             </button>
           </div>
 
-          {/* Enhanced Filter Section */}
+          {/* Enhanced Filters Section */}
           <div className="p-6 pt-4 border-b border-gradient-to-r from-transparent via-slate-700/60 to-transparent relative z-10">
             <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-gradient-to-r from-teal-400 to-cyan-400 rounded-full opacity-50"></div>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">
               <div className="relative group">
-                <label className="block text-xs font-semibold text-slate-400 mb-2 ml-1">Status Filter</label>
+                <label className="block text-xs font-semibold text-slate-400 mb-2 ml-1">
+                  Status Filter
+                </label>
                 <div className="relative">
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
                     className="w-full py-3.5 pl-4 pr-10 text-sm bg-gradient-to-br from-slate-800/90 to-slate-700/90 border border-slate-600/60 rounded-xl text-white focus:ring-2 focus:ring-teal-400/80 focus:border-teal-400/80 appearance-none cursor-pointer hover:from-slate-700/95 hover:to-slate-600/95 transition-all duration-300 backdrop-blur-sm shadow-xl group-hover:shadow-2xl font-medium"
                     style={{
-                      colorScheme: 'dark'
+                      colorScheme: "dark",
                     }}
                   >
-                    <option value="all" style={{backgroundColor: '#1e293b', color: '#f1f5f9'}}>All Status</option>
-                    <option value="submitted" style={{backgroundColor: '#1e293b', color: '#f1f5f9'}}>Submitted</option>
-                    <option value="acknowledged" style={{backgroundColor: '#1e293b', color: '#f1f5f9'}}>Acknowledged</option>
-                    <option value="in_progress" style={{backgroundColor: '#1e293b', color: '#f1f5f9'}}>In Progress</option>
-                    <option value="resolved" style={{backgroundColor: '#1e293b', color: '#f1f5f9'}}>Resolved</option>
+                    <option
+                      value="all"
+                      style={{ backgroundColor: "#1e293b", color: "#f1f5f9" }}
+                    >
+                      All Status
+                    </option>
+                    <option
+                      value="submitted"
+                      style={{ backgroundColor: "#1e293b", color: "#f1f5f9" }}
+                    >
+                      Submitted
+                    </option>
+                    <option
+                      value="acknowledged"
+                      style={{ backgroundColor: "#1e293b", color: "#f1f5f9" }}
+                    >
+                      Acknowledged
+                    </option>
+                    <option
+                      value="in_progress"
+                      style={{ backgroundColor: "#1e293b", color: "#f1f5f9" }}
+                    >
+                      In Progress
+                    </option>
+                    <option
+                      value="resolved"
+                      style={{ backgroundColor: "#1e293b", color: "#f1f5f9" }}
+                    >
+                      Resolved
+                    </option>
                   </select>
                   <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-teal-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
                   <svg
@@ -350,23 +386,60 @@ export default function AdminPage() {
               </div>
 
               <div className="relative group">
-                <label className="block text-xs font-semibold text-slate-400 mb-2 ml-1">Category Filter</label>
+                <label className="block text-xs font-semibold text-slate-400 mb-2 ml-1">
+                  Category Filter
+                </label>
                 <div className="relative">
                   <select
                     value={categoryFilter}
                     onChange={(e) => setCategoryFilter(e.target.value)}
                     className="w-full py-3.5 pl-4 pr-10 text-sm bg-gradient-to-br from-slate-800/90 to-slate-700/90 border border-slate-600/60 rounded-xl text-white focus:ring-2 focus:ring-teal-400/80 focus:border-teal-400/80 appearance-none cursor-pointer hover:from-slate-700/95 hover:to-slate-600/95 transition-all duration-300 backdrop-blur-sm shadow-xl group-hover:shadow-2xl font-medium"
                     style={{
-                      colorScheme: 'dark'
+                      colorScheme: "dark",
                     }}
                   >
-                    <option value="all" style={{backgroundColor: '#1e293b', color: '#f1f5f9'}}>All Categories</option>
-                    <option value="Roads" style={{backgroundColor: '#1e293b', color: '#f1f5f9'}}>🛣️ Roads</option>
-                    <option value="Electrical" style={{backgroundColor: '#1e293b', color: '#f1f5f9'}}>⚡ Electrical</option>
-                    <option value="Sanitation" style={{backgroundColor: '#1e293b', color: '#f1f5f9'}}>🗑️ Sanitation</option>
-                    <option value="Environment" style={{backgroundColor: '#1e293b', color: '#f1f5f9'}}>🌱 Environment</option>
-                    <option value="Infrastructure" style={{backgroundColor: '#1e293b', color: '#f1f5f9'}}>🏗️ Infrastructure</option>
-                    <option value="Other" style={{backgroundColor: '#1e293b', color: '#f1f5f9'}}>📋 Other</option>
+                    <option
+                      value="all"
+                      style={{ backgroundColor: "#1e293b", color: "#f1f5f9" }}
+                    >
+                      All Categories
+                    </option>
+                    <option
+                      value="Roads"
+                      style={{ backgroundColor: "#1e293b", color: "#f1f5f9" }}
+                    >
+                      🛣️ Roads
+                    </option>
+                    <option
+                      value="Electrical"
+                      style={{ backgroundColor: "#1e293b", color: "#f1f5f9" }}
+                    >
+                      ⚡ Electrical
+                    </option>
+                    <option
+                      value="Sanitation"
+                      style={{ backgroundColor: "#1e293b", color: "#f1f5f9" }}
+                    >
+                      🗑️ Sanitation
+                    </option>
+                    <option
+                      value="Environment"
+                      style={{ backgroundColor: "#1e293b", color: "#f1f5f9" }}
+                    >
+                      🌱 Environment
+                    </option>
+                    <option
+                      value="Infrastructure"
+                      style={{ backgroundColor: "#1e293b", color: "#f1f5f9" }}
+                    >
+                      🏗️ Infrastructure
+                    </option>
+                    <option
+                      value="Other"
+                      style={{ backgroundColor: "#1e293b", color: "#f1f5f9" }}
+                    >
+                      📋 Other
+                    </option>
                   </select>
                   <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-teal-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
                   <svg
@@ -386,18 +459,30 @@ export default function AdminPage() {
               </div>
 
               <div className="relative group">
-                <label className="block text-xs font-semibold text-slate-400 mb-2 ml-1">Sort Order</label>
+                <label className="block text-xs font-semibold text-slate-400 mb-2 ml-1">
+                  Sort Order
+                </label>
                 <div className="relative">
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
                     className="w-full py-3.5 pl-4 pr-10 text-sm bg-gradient-to-br from-slate-800/90 to-slate-700/90 border border-slate-600/60 rounded-xl text-white focus:ring-2 focus:ring-teal-400/80 focus:border-teal-400/80 appearance-none cursor-pointer hover:from-slate-700/95 hover:to-slate-600/95 transition-all duration-300 backdrop-blur-sm shadow-xl group-hover:shadow-2xl font-medium"
                     style={{
-                      colorScheme: 'dark'
+                      colorScheme: "dark",
                     }}
                   >
-                    <option value="upvotes" style={{backgroundColor: '#1e293b', color: '#f1f5f9'}}>🔥 Most Upvoted</option>
-                    <option value="recent" style={{backgroundColor: '#1e293b', color: '#f1f5f9'}}>🕐 Most Recent</option>
+                    <option
+                      value="upvotes"
+                      style={{ backgroundColor: "#1e293b", color: "#f1f5f9" }}
+                    >
+                      🔥 Most Upvoted
+                    </option>
+                    <option
+                      value="recent"
+                      style={{ backgroundColor: "#1e293b", color: "#f1f5f9" }}
+                    >
+                      🕐 Most Recent
+                    </option>
                   </select>
                   <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-teal-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
                   <svg
@@ -426,7 +511,7 @@ export default function AdminPage() {
                 className="bg-gradient-to-br from-slate-800/70 via-slate-800/60 to-slate-800/70 border border-slate-700/60 rounded-xl p-4 hover:from-slate-800/90 hover:via-slate-800/80 hover:to-slate-800/90 hover:border-slate-600/70 transition-all duration-300 shadow-lg hover:shadow-xl group/report relative overflow-hidden backdrop-blur-sm"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-teal-500/5 to-cyan-500/5 opacity-0 group-hover/report:opacity-100 transition-opacity duration-300"></div>
-                
+
                 <div className="flex space-x-4 relative z-10">
                   {/* Enhanced Image */}
                   <button
@@ -456,7 +541,7 @@ export default function AdminPage() {
                       </div>
                     </div>
                   </button>
-
+                   
                   {/* Enhanced Content */}
                   <div className="flex-1 min-w-0">
                     {/* Top row: Enhanced Category and Stats */}
@@ -493,6 +578,18 @@ export default function AdminPage() {
                         </span>
                       </div>
                     </div>
+
+                        {/* --- UPDATED ADDRESS & PINCODE SECTION --- */}
+  <div className="mb-3 p-3 bg-slate-900/50 rounded-lg border border-slate-700/50 flex gap-1.5 justify-between items-center">
+    <p className="text-sm font-semibold text-slate-200 line-clamp-2 leading-relaxed">
+      {report.fullAddress && report.fullAddress !== 'Address not found' ? report.fullAddress : report.description}
+    </p>
+    {report.pincode && report.pincode !== 'N/A' && (
+      <p className="mt-2 inline-block text-xs font-mono text-cyan-300 bg-cyan-500/10 px-2 py-1 rounded-full border border-cyan-500/30">
+        Pincode: {report.pincode}
+      </p>
+    )}
+  </div>
 
                     {/* Enhanced Description */}
                     <p className="text-sm text-slate-200 mb-3 line-clamp-2 leading-relaxed bg-slate-700/20 rounded-lg px-3 py-2 border border-slate-700/30">
@@ -611,7 +708,7 @@ export default function AdminPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-cyan-500/5 pointer-events-none"></div>
-            
+
             {/* Enhanced Header */}
             <div className="p-6 border-b border-slate-700/60 flex justify-between items-start relative z-10">
               <div className="flex-1 min-w-0">
@@ -641,7 +738,7 @@ export default function AdminPage() {
                   <span className="text-slate-400">Loading comments...</span>
                 </div>
               ) : currentComments.length > 0 ? (
-                currentComments.map((comment) => (
+                currentComments.map((comment, report) => (
                   <div
                     key={comment._id}
                     className="bg-gradient-to-r from-slate-700/60 to-slate-700/40 p-4 rounded-xl border border-slate-600/40 hover:from-slate-700/80 hover:to-slate-700/60 transition-all duration-300 shadow-lg hover:shadow-xl backdrop-blur-sm"
@@ -664,6 +761,7 @@ export default function AdminPage() {
                         <p className="text-slate-500 text-xs mt-2 bg-slate-700/40 px-2 py-1 rounded-full inline-block">
                           {new Date(comment.createdAt).toLocaleString()}
                         </p>
+                        
                       </div>
                     </div>
                   </div>
@@ -703,24 +801,32 @@ export default function AdminPage() {
           scrollbar-width: thin;
           scrollbar-color: rgba(20, 184, 166, 0.8) transparent;
         }
-        
+
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;
         }
-        
+
         .custom-scrollbar::-webkit-scrollbar-track {
           background: rgba(71, 85, 105, 0.1);
           border-radius: 3px;
         }
-        
+
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: linear-gradient(to bottom, rgb(20 184 166), rgb(6 182 212));
+          background: linear-gradient(
+            to bottom,
+            rgb(20 184 166),
+            rgb(6 182 212)
+          );
           border-radius: 3px;
           border: 1px solid rgba(20, 184, 166, 0.3);
         }
-        
+
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: linear-gradient(to bottom, rgb(13 148 136), rgb(8 145 178));
+          background: linear-gradient(
+            to bottom,
+            rgb(13 148 136),
+            rgb(8 145 178)
+          );
         }
 
         @keyframes fadeIn {
@@ -731,7 +837,7 @@ export default function AdminPage() {
             opacity: 1;
           }
         }
-        
+
         .animate-fadeIn {
           animation: fadeIn 0.3s ease-out;
         }
@@ -743,7 +849,7 @@ export default function AdminPage() {
             animation-iteration-count: 1 !important;
             transition-duration: 0.01ms !important;
           }
-          
+
           .animate-fadeIn {
             animation: none !important;
           }

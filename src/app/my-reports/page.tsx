@@ -29,6 +29,7 @@ interface Report {
   imageUrl: string;
   status: 'submitted' | 'acknowledged' | 'in_progress' | 'resolved';
   createdAt: string;
+  responsibleDepartment: string;
   priority: 'High' | 'Medium' | 'Low';
 }
 

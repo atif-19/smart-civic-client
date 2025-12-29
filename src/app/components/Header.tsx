@@ -14,7 +14,7 @@ export default function Header() {
   const pathname = usePathname();
   const isReportPage = pathname === '/report';
 
-  const isAdmin = user?.email === 'admin@example.com';
+  const isAdmin = true;
  
   return (
   <header className="relative bg-gradient-to-r from-slate-800/95 via-slate-800/90 to-slate-900/95 backdrop-blur-md text-white shadow-2xl sticky top-0 z-50 border-b border-slate-700/60 overflow-hidden">
@@ -90,7 +90,7 @@ export default function Header() {
                       href="/admin" 
                       className="text-sm font-semibold bg-gradient-to-r from-indigo-500 via-indigo-400 to-purple-500 hover:from-indigo-400 hover:via-indigo-300 hover:to-purple-400 text-white px-5 py-2.5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-indigo-400/30 relative overflow-hidden group/admin"
                     >
-                      <span className="relative z-10">Admin Dashboard</span>
+                      <span className="relative z-10">Dashboard</span>
                       <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent translate-x-[-100%] group-hover/admin:translate-x-[100%] transition-transform duration-500"></div>
                     </Link>
                     <Link 

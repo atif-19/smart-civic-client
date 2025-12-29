@@ -1,10 +1,24 @@
 'use client';
 
-import { useState, useEffect, FormEvent, useCallback } from 'react';
+import { useState, useEffect, FormEvent, useCallback, memo } from 'react';
 import { useAuth } from './context/AuthContext';
-import { ThumbsUp, Plus, MessageSquare } from 'lucide-react';
+import { ThumbsUp, Plus, MessageSquare, Calendar, User, Filter, Search, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
-import { ShieldAlert, ShieldCheck, Shield } from 'lucide-react'; // Import new icons
+import { Briefcase, Trash2, TreePine, Truck, Zap, HelpCircle,ShieldAlert, ShieldCheck, Shield } from 'lucide-react';
+
+// --- PERFORMANCE HOOK: Debounces input to prevent excessive re-renders ---
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+  return debouncedValue;
+}
 
 // --- Type Definitions ---
 interface User {
@@ -17,11 +31,10 @@ interface Comment {
   submittedBy: User;
   createdAt: string;
 }
-// --- UPDATED INTERFACE ---
 interface Report {
   _id: string;
-    parentCategory: string; // Add parentCategory
-  resolvedImageUrl?: string; // Add the optional resolved image URL
+  parentCategory: string;
+  resolvedImageUrl?: string;
   status: string;
   category: string;
   description: string;
@@ -31,336 +44,316 @@ interface Report {
   submittedBy: User;
   createdAt: string;
   commentCount: number;
-  priority: 'High' | 'Medium' | 'Low'; // Add priority
+  confirmIssue: string[]; // Add this
+  confirmIssueCount?: number; // Optional: depending on how you handle counts
+  responsibleDepartment: string | 'other';
+  priority: 'High' | 'Medium' | 'Low';
 }
-// --- A self-contained component for a single report card ---
-const ReportCard = ({ initialReport, currentUser, onUpdate }: { initialReport: Report, currentUser: User | null, onUpdate: () => void }) => {
+
+// --- Optimized Badge and Utility Components ---
+const PriorityBadge = ({ priority }: { priority: Report['priority'] }) => {
+  const priorityMap = {
+    High: { text: 'High Priority', icon: <ShieldAlert size={12}/>, color: 'text-red-400 border-red-500/50 bg-red-500/10' },
+    Medium: { text: 'Medium Priority', icon: <ShieldCheck size={12}/>, color: 'text-orange-400 border-orange-500/50 bg-orange-500/10' },
+    Low: { text: 'Low Priority', icon: <Shield size={12}/>, color: 'text-green-400 border-green-500/50 bg-green-500/10' },
+  };
+  const { text, icon, color } = priorityMap[priority] || priorityMap.Medium;
+  return (<span className={`inline-flex items-center space-x-1 text-xs font-semibold px-3 py-1.5 rounded-full border ${color} backdrop-blur-sm transition-transform hover:scale-105`}>{icon}<span>{text}</span></span>);
+};
+
+const StatusBadge = ({ status }: { status: string }) => {
+  const statusMap = {
+    'open': { color: 'bg-blue-500/20 text-blue-400 border-blue-500/50', dot: 'bg-blue-400' },
+    'in-progress': { color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50', dot: 'bg-yellow-400' },
+    'resolved': { color: 'bg-green-500/20 text-green-400 border-green-500/50', dot: 'bg-green-400' },
+    'closed': { color: 'bg-gray-500/20 text-gray-400 border-gray-500/50', dot: 'bg-gray-400' }
+  };
+  const config = statusMap[status as keyof typeof statusMap] || statusMap.open;
+  return (<span className={`inline-flex items-center space-x-2 text-xs font-medium px-3 py-1.5 rounded-full border ${config.color} backdrop-blur-sm`}><span className={`w-2 h-2 rounded-full ${config.dot}`}></span><span className="capitalize">{status}</span></span>);
+};
+
+// Frontend: HomePage.tsx
+const DepartmentBadge = ({ responsibleDepartment }: { responsibleDepartment: string }) => {
+  const deptMap: Record<string, { icon: React.ReactElement; color: string }> = {
+    'Public Works': { icon: <Briefcase size={12}/>, color: 'text-blue-400 border-blue-500/50 bg-blue-500/10' },
+    'Municipal Corporation': { icon: <Briefcase size={12}/>, color: 'text-blue-400 border-blue-500/50 bg-blue-500/10' },
+    'Sanitation Department': { icon: <Trash2 size={12}/>, color: 'text-emerald-400 border-emerald-500/50 bg-emerald-500/10' },
+    'Parks and Recreation': { icon: <TreePine size={12}/>, color: 'text-green-400 border-green-500/50 bg-green-500/10' },
+    'Road & Transportation': { icon: <Truck size={12}/>, color: 'text-purple-400 border-purple-500/50 bg-purple-500/10' },
+    'Electricity Department': { icon: <Zap size={12}/>, color: 'text-yellow-400 border-yellow-500/50 bg-yellow-500/10' },
+    'Water Department': { icon: <Zap size={12}/>, color: 'text-cyan-400 border-cyan-500/50 bg-cyan-500/10' },
+    'Police/Public safety': { icon: <Shield size={12}/>, color: 'text-red-400 border-red-500/50 bg-red-500/10' },
+    'Other': { icon: <HelpCircle size={12}/>, color: 'text-slate-400 border-slate-500/50 bg-slate-500/10' },
+  };
+
+  const config = deptMap[responsibleDepartment] || deptMap['Other'];
+
+  return (
+    <span className={`inline-flex items-center space-x-1 text-[10px] uppercase tracking-wider font-bold px-3 py-1.5 rounded-full border ${config.color} backdrop-blur-sm transition-transform hover:scale-105`}>
+      {config.icon}
+      <span>{responsibleDepartment || 'Other'}</span>
+    </span>
+  );
+};
+const formatTimeAgo = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(diff / 3600000);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(diff / 86400000);
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString();
+};
+
+// --- PERFORMANCE: Memoized ReportCard to prevent unnecessary re-renders ---
+const ReportCard = memo(function ReportCard({ initialReport, currentUser, onUpdate }: { initialReport: Report, currentUser: User | null, onUpdate: () => void }) {
   const [report, setReport] = useState(initialReport);
   const [comments, setComments] = useState<Comment[]>([]);
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [isCommenting, setIsCommenting] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
-  // Update local state if the initialReport prop changes (e.g., after a parent refetch)
-  useEffect(() => {
-    setReport(initialReport);
-  }, [initialReport]);
+  useEffect(() => { setReport(initialReport); }, [initialReport]);
 
   const userHasUpvoted = currentUser && report.upvotes ? report.upvotes.includes(currentUser._id) : false;
-
+const userHasConfirmed = currentUser && report.confirmIssue ? report.confirmIssue.includes(currentUser._id) : false;
   const handleUpvote = async () => {
-  if (!currentUser) return alert('You must be logged in to upvote.');
+    if (!currentUser) return;
+    const originalReport = { ...report };
+    const newUpvoteCount = userHasUpvoted ? report.upvoteCount - 1 : report.upvoteCount + 1;
+    const newUpvotes = userHasUpvoted ? report.upvotes.filter(id => id !== currentUser._id) : [...report.upvotes, currentUser._id];
+    setReport({ ...report, upvoteCount: newUpvoteCount, upvotes: newUpvotes });
 
-  // 1. Instantly update the UI
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reports/${report._id}/upvote`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+      });
+      if (!response.ok) throw new Error('Failed to upvote');
+    } catch (err) {
+      setReport(originalReport);
+    }
+  };
+  // NEW: Handle Confirm Logic
+  const handleConfirm = async () => {
+  if (!currentUser) return;
   const originalReport = { ...report };
-  const newUpvoteCount = userHasUpvoted ? report.upvoteCount - 1 : report.upvoteCount + 1;
-  const newUpvotes = userHasUpvoted
-    ? report.upvotes.filter(id => id !== currentUser._id)
-    : [...report.upvotes, currentUser._id];
   
-  setReport({ ...report, upvoteCount: newUpvoteCount, upvotes: newUpvotes });
+  // Optimistic UI Update: Update the local state immediately
+  const isAdding = !userHasConfirmed;
+  const newConfirmList = isAdding 
+    ? [...(report.confirmIssue || []), currentUser._id] 
+    : (report.confirmIssue || []).filter(id => id !== currentUser._id);
+    
+  setReport({ ...report, confirmIssue: newConfirmList });
 
-  // 2. Send the request to the server in the background
-  const token = localStorage.getItem('token');
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reports/${report._id}/upvote`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reports/${report._id}/confirm`, {
       method: 'PATCH',
-      headers: { 'Authorization': `Bearer ${token}` },
+      headers: { 
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json'
+      },
     });
 
-    if (!response.ok) {
-      // 3. If the server fails, revert the change
-      throw new Error('Failed to upvote');
-    }
+    if (!response.ok) throw new Error('Failed to confirm');
+    
+    // Sync with the actual data returned from the server
+    const updatedReport = await response.json();
+    setReport(updatedReport);
   } catch (err) {
-    // 3. If the server fails, revert the change
-    alert('Failed to upvote.');
+    // If the API fails, roll back to the original state
     setReport(originalReport);
+    console.error("Confirmation failed:", err);
   }
 };
-  
-  const toggleComments = async () => {
-    const shouldShow = !showComments;
-    setShowComments(shouldShow);
-    if (shouldShow && comments.length === 0) {
+  const toggleComments = async () => { 
+    if (!showComments && comments.length === 0) {
       try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reports/${report._id}/comments`);
         if (!response.ok) throw new Error('Failed to fetch comments');
         const data = await response.json();
         setComments(data);
-      } catch (error) {
-        console.error("Failed to fetch comments", error);
+      } catch (err) {
+        // Handle error silently
+
       }
     }
+      setShowComments(!showComments);
+      if (showComments) {
+        setIsCommenting(false);
+      }
   };
-
-  const handleCommentSubmit = async (e: FormEvent) => {
+  const handleCommentSubmit = async (e: FormEvent) => { 
     e.preventDefault();
-    if (!newComment.trim() || !currentUser) return;
+    if (!currentUser || !newComment.trim()) return;
     setIsCommenting(true);
-    const token = localStorage.getItem('token');
+    const commentToAdd = {
+      _id: `temp-${Date.now()}`,
+      text: newComment.trim(),
+      submittedBy: currentUser,
+      createdAt: new Date().toISOString(),
+    };
+    setComments([commentToAdd, ...comments]);
+    setNewComment('');
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reports/${report._id}/comments`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ text: newComment }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ text: commentToAdd.text }),
       });
-      if(response.ok) {
-        setNewComment('');
-        onUpdate(); 
-        setShowComments(false); // Close and re-open to refetch comments
-        setTimeout(() => setShowComments(true), 50);
-      }
-    } catch (error) {
-      alert('Failed to post comment.');
+      if (!response.ok) throw new Error('Failed to post comment');
+      const savedComment = await response.json();
+      setComments([savedComment, ...comments]);
+      setReport({ ...report, commentCount: report.commentCount + 1 });
+      onUpdate();
+    } catch (err) {
+      setComments(comments.filter(c => c._id !== commentToAdd._id));
     } finally {
       setIsCommenting(false);
     }
-  };
-  // --- NEW HELPER ---
-const PriorityBadge = ({ priority }: { priority: Report['priority'] }) => {
-    const priorityMap = {
-        High: { text: 'High Priority', icon: <ShieldAlert size={12}/>, color: 'text-red-400 border-red-500/50 bg-red-500/10' },
-        Medium: { text: 'Medium Priority', icon: <ShieldCheck size={12}/>, color: 'text-orange-400 border-orange-500/50 bg-orange-500/10' },
-        Low: { text: 'Low Priority', icon: <Shield size={12}/>, color: 'text-green-400 border-green-500/50 bg-green-500/10' },
-    };
-    const { text, icon, color } = priorityMap[priority] || priorityMap.Medium;
-    return (
-        <span className={`inline-flex items-center space-x-1 text-xs font-semibold px-2 py-1 rounded-full border ${color}`}>
-            {icon}
-            <span>{text}</span>
-        </span>
-    );
-};
 
+  }
   return (
-    <div className="bg-gradient-to-br from-slate-800/95 via-slate-800/90 to-slate-900/95 backdrop-blur-sm rounded-2xl shadow-2xl p-5 md:p-6 border border-slate-700/50 hover:border-slate-600/70 transition-all duration-300 hover:shadow-3xl group relative overflow-hidden">
-  
-  {/* Subtle background pattern */}
-  <div className="absolute inset-0 opacity-[0.02] bg-[radial-gradient(circle_at_50%_50%,_rgba(20,184,166,0.3)_0%,_transparent_50%)]"></div>
-  
-  <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 relative z-10">
-    {/* Mobile: Horizontal upvote, Desktop: Vertical upvote */}
-    <div className="flex flex-row sm:flex-col items-center justify-start sm:justify-center gap-3 order-2 sm:order-1">
-      <button 
-        onClick={handleUpvote} 
-        disabled={!currentUser} 
-        className="relative p-3 rounded-full transition-all duration-300 disabled:cursor-not-allowed group/upvote hover:scale-110 active:scale-95"
-      >
-        <div className={`
-          absolute inset-0 rounded-full transition-all duration-300
-          ${userHasUpvoted 
-            ? 'bg-gradient-to-br from-teal-500 via-teal-400 to-cyan-500 shadow-lg shadow-teal-500/40' 
-            : 'bg-slate-700/80 hover:bg-gradient-to-br hover:from-teal-500/20 hover:to-cyan-500/20 hover:shadow-lg hover:shadow-teal-500/25 border border-slate-600/30'
-          }
-        `}></div>
-        <ThumbsUp
-          className={`relative z-10 w-5 h-5 md:w-6 md:h-6 transition-all duration-300 ${
-            userHasUpvoted
-              ? 'text-white drop-shadow-sm'
-              : 'text-slate-400 hover:text-teal-300 group-hover/upvote:text-teal-200'
-          }`}
-        />
-        {userHasUpvoted && (
-          <div className="absolute -inset-1 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-full blur opacity-50 group-hover/upvote:opacity-70 transition-opacity"></div>
-        )}
-      </button>
-      <span className="font-bold text-lg md:text-xl text-white bg-gradient-to-br from-slate-700/80 to-slate-800/80 backdrop-blur-sm px-3 py-2 rounded-full min-w-[3rem] text-center shadow-lg border border-slate-600/40">
-        {report.upvoteCount || 0}
-      </span>
-    </div>
-
-    {/* Content Section */}
-    <div className="flex-1 min-w-0 order-1 sm:order-2">
-      {/* Header Meta */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold bg-gradient-to-r from-teal-500 via-teal-400 to-cyan-500 text-white px-3 py-2 rounded-full shadow-lg border border-teal-400/30 backdrop-blur-sm relative overflow-hidden">
-            <span className="relative z-10">{initialReport.parentCategory} / {initialReport.category}</span>
-            <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-          </span>
+    <div className="bg-gradient-to-br from-slate-800/80 via-slate-800/70 to-slate-900/80 backdrop-blur-sm rounded-3xl p-5 md:p-8 border border-slate-700/50 hover:border-slate-600/70 transition-[transform,border-color] duration-300 group relative transform hover:-translate-y-1">
+      <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 relative z-10">
+        {/* LEFT SIDE: UPVOTE */}
+        <div className="flex flex-row sm:flex-col items-center justify-start sm:justify-center gap-4 order-2 sm:order-1">
+          <button onClick={handleUpvote} disabled={!currentUser} className="relative p-4 rounded-2xl transition-transform duration-300 disabled:cursor-not-allowed hover:scale-110 active:scale-95">
+            <div className={`absolute inset-0 rounded-2xl transition-colors duration-300 ${userHasUpvoted ? 'bg-gradient-to-br from-teal-500 to-cyan-500' : 'bg-slate-700/80 border border-slate-600/30'}`}></div>
+            <ThumbsUp className={`relative z-10 w-6 h-6 transition-colors duration-300 ${userHasUpvoted ? 'text-white' : 'text-slate-400'}`} />
+          </button>
+          <span className="font-bold text-xl text-white bg-slate-800/90 px-4 py-3 rounded-2xl min-w-[4rem] text-center border border-slate-600/40">{report.upvoteCount || 0}</span>
         </div>
-        <div className="flex items-center gap-2 text-xs text-slate-400 bg-gradient-to-r from-slate-700/40 to-slate-700/20 px-3 py-2 rounded-full backdrop-blur-sm border border-slate-600/40">
-          <PriorityBadge priority={report.priority} />
-          <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-sm shadow-emerald-400/60 animate-pulse"></div>
-          <span className="truncate">Posted by {report.submittedBy?.email || 'Anonymous'}</span>
-        </div>
-      </div>
-
-      {/* Description */}
-      <p className="mt-4 text-slate-200 leading-relaxed text-sm md:text-base font-medium tracking-wide bg-gradient-to-br from-slate-700/20 to-transparent rounded-lg px-4 py-3 border border-slate-700/30">
-        {report.description}
-      </p>
-
-      {/* Image Container */}
-      <div className="mt-6 relative w-full overflow-hidden rounded-xl shadow-2xl group/image bg-gradient-to-br from-slate-700/80 to-slate-800/80 p-1 border border-slate-600/30">
-        <div className="overflow-hidden rounded-lg relative">
-          <img 
-            src={report.imageUrl} 
-            alt={report.category} 
-            className="w-full h-48 sm:h-56 md:h-64 object-cover transition-all duration-500 hover:scale-105 group-hover/image:brightness-110" 
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 rounded-lg pointer-events-none"></div>
-        </div>
-      </div>
-
-      {/* Comments Toggle */}
-      <div className="mt-6 flex items-center justify-between">
-        <button
-          onClick={toggleComments}
-          className="flex items-center gap-3 text-sm text-slate-400 hover:text-teal-300 transition-all duration-300 bg-gradient-to-r from-slate-700/50 to-slate-700/30 hover:from-slate-600/70 hover:to-slate-600/50 px-4 py-3 rounded-full backdrop-blur-sm border border-slate-600/40 hover:border-teal-500/50 group/comments relative overflow-hidden"
-        >
-          <MessageSquare className="w-4 h-4 md:w-5 md:h-5 group-hover/comments:text-teal-200 transition-colors relative z-10" />
-          <span className="font-medium relative z-10">
-            {showComments ? 'Hide Comments' : `Comments (${report.commentCount || 0})`}
-          </span>
-          <div className="absolute inset-0 bg-gradient-to-r from-teal-500/10 to-transparent translate-x-[-100%] group-hover/comments:translate-x-[100%] transition-transform duration-500"></div>
-        </button>
         
-        <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-700/30 px-3 py-2 rounded-full border border-slate-600/20">
-          <div className="w-1 h-1 bg-slate-500 rounded-full"></div>
-          <span className="hidden sm:inline">Just now</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  {/* Comments Section */}
-  {showComments && (
-    <div className="mt-8 pt-6 border-t border-gradient-to-r from-transparent via-slate-600/50 to-transparent relative">
-      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-0.5 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full"></div>
-      
-      {currentUser && (
-        <div className="mb-6">
-          <div className="flex gap-2 sm:gap-3">
-            <div className="flex-1 relative group/input">
-              <input
-                type="text"
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Share your thoughts..."
-                className="w-full bg-gradient-to-br from-slate-700/70 to-slate-700/50 text-slate-200 rounded-xl px-4 py-3 text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-teal-500/60 focus:border-teal-500/60 transition-all duration-300 placeholder-slate-400 backdrop-blur-sm shadow-lg hover:from-slate-700/90 hover:to-slate-700/70 focus:from-slate-700/95 focus:to-slate-700/80"
-                disabled={isCommenting}
-                onKeyPress={(e) => e.key === 'Enter' && !isCommenting && handleCommentSubmit(e)}
-              />
-              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-teal-500/5 to-cyan-500/5 opacity-0 group-focus-within/input:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+        <div className="flex-1 min-w-0 order-1 sm:order-2 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-sm font-bold bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-4 py-2 rounded-full border border-teal-400/30">{initialReport.parentCategory} / {initialReport.category}</span>
+              <StatusBadge status={report.status} />
             </div>
-            <button
-              onClick={handleCommentSubmit}
-              className="bg-gradient-to-r from-teal-500 via-teal-400 to-cyan-500 hover:from-teal-400 hover:via-teal-300 hover:to-cyan-400 text-white font-bold px-4 sm:px-6 py-3 rounded-xl text-sm shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed min-w-[4rem] sm:min-w-[5rem] relative overflow-hidden group/submit border border-teal-400/30"
-              disabled={isCommenting}
-            >
-              <span className="relative z-10">
-                {isCommenting ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                ) : (
-                  <span className="hidden sm:inline">Post</span>
-                )}
-                {!isCommenting && <span className="sm:hidden">→</span>}
-              </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent translate-x-[-100%] group-hover/submit:translate-x-[100%] transition-transform duration-500"></div>
+
+            {/* NEW GREEN CONFIRM BUTTON ON THE RIGHT */}
+            <div className="flex items-center gap-2 ml-auto">
+              <div className="flex items-center gap-2 bg-slate-800/50 p-1.5 rounded-2xl border border-slate-700/50 shadow-inner">
+                <span className="text-[10px] font-bold text-emerald-400 px-2 uppercase tracking-tight">
+                  {report.confirmIssue?.length || 0} Confirmed
+                </span>
+                <button 
+                  onClick={handleConfirm} 
+                  disabled={!currentUser}
+                  className={`p-2.5 rounded-xl transition-all duration-300 transform active:scale-90 ${
+                    userHasConfirmed 
+                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/40 scale-105' 
+                    : 'bg-slate-700 text-slate-400 hover:text-emerald-400 hover:bg-slate-600'
+                  }`}
+                >
+                  <ShieldCheck size={18} fill={userHasConfirmed ? "currentColor" : "none"} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <PriorityBadge priority={report.priority} />
+            <DepartmentBadge responsibleDepartment={report.responsibleDepartment} />
+            <div className="flex items-center gap-2 text-xs text-slate-400">
+              <User size={12} />
+              <span className="truncate max-w-32">{report.submittedBy?.email || 'Anonymous'}</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-slate-400">
+              <Calendar size={12} />
+              <span>{formatTimeAgo(report.createdAt)}</span>
+            </div>
+          </div>
+    
+          <p className="text-slate-200 leading-relaxed text-sm bg-slate-700/20 rounded-2xl px-6 py-4 border border-slate-700/40">{report.description}</p>
+          
+          <div className="relative w-full overflow-hidden rounded-2xl bg-slate-800/80 p-2 border border-slate-600/30">
+            <div className="overflow-hidden rounded-xl">
+              {!imageLoaded && <div className="w-full h-48 sm:h-56 md:h-64 bg-slate-700 animate-pulse"></div>}
+              <img src={report.imageUrl} alt={report.category} onLoad={() => setImageLoaded(true)} className={`w-full h-48 sm:h-56 md:h-64 object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`} />
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <button onClick={toggleComments} className="flex items-center gap-3 text-sm text-slate-400 hover:text-teal-300 transition-colors duration-300 px-5 py-3 rounded-2xl border border-slate-600/40 hover:border-teal-500/50">
+              <MessageSquare className="w-5 h-5" />
+              <span className="font-medium">{showComments ? 'Hide Comments' : `Comments (${report.commentCount || 0})`}</span>
             </button>
+          </div>
+        </div>
+      </div>  
+      {showComments && (
+        <div className="mt-10 pt-8 border-t border-slate-700 relative">
+          {currentUser && (
+            <div className="mb-8">
+              <form onSubmit={handleCommentSubmit} className="flex gap-4">
+                <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-full flex-shrink-0 items-center justify-center flex shadow-lg"><span className="text-white font-bold">{(currentUser.email || 'U')[0].toUpperCase()}</span></div>
+                <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Share your thoughts..." className="w-full bg-slate-700/80 text-slate-200 rounded-2xl px-5 py-4 text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-teal-500" disabled={isCommenting} />
+                <button type="submit" className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white font-bold px-6 py-4 rounded-2xl text-sm transition-opacity disabled:opacity-50" disabled={isCommenting}>
+                  {isCommenting ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <span>Post</span>}
+                </button>
+              </form>
+            </div>
+          )}
+          <div className="space-y-4 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
+            {comments.map((comment) => (
+              <div key={comment._id} className="bg-slate-700/60 p-5 rounded-2xl border border-slate-600/40">
+                <div className="flex items-start gap-4">
+                  <div className="w-9 h-9 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-full flex-shrink-0 items-center justify-center flex shadow-lg mt-0.5"><span className="text-white text-xs font-bold">{(comment.submittedBy?.email || 'U')[0].toUpperCase()}</span></div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <p className="font-bold text-slate-300 text-sm truncate">{comment.submittedBy?.email || 'Anonymous'}</p>
+                      <span className="text-xs text-slate-500">{formatTimeAgo(comment.createdAt)}</span>
+                    </div>
+                    <p className="text-slate-400 text-sm">{comment.text}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {comments.length === 0 && (
+              <div className="text-center py-12 border-2 border-dashed border-slate-700 rounded-2xl">
+                <MessageSquare className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+                <p className="text-slate-500 text-sm font-medium">No comments yet</p>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      <div className="space-y-3 max-h-72 overflow-y-auto pr-1 custom-scrollbar">
-        {comments.map((comment) => (
-          <div
-            key={comment._id}
-            className="bg-gradient-to-br from-slate-700/50 to-slate-700/30 backdrop-blur-sm p-4 rounded-xl border border-slate-600/40 hover:border-slate-500/60 transition-all duration-300 hover:from-slate-700/70 hover:to-slate-700/50 group/comment relative overflow-hidden"
-          >
-            <div className="absolute inset-0 opacity-0 group-hover/comment:opacity-100 bg-gradient-to-r from-teal-500/5 to-transparent transition-opacity duration-300"></div>
-            <div className="flex items-start gap-3 relative z-10">
-              <div className="w-7 h-7 md:w-8 md:h-8 bg-gradient-to-br from-teal-400 via-teal-300 to-cyan-400 rounded-full flex items-center justify-center shadow-lg flex-shrink-0 mt-0.5 border border-teal-300/30">
-                <span className="text-white text-xs font-bold drop-shadow-sm">
-                  {(comment.submittedBy?.email || 'U')[0].toUpperCase()}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-2">
-                  <p className="font-bold text-slate-300 text-sm truncate">
-                    {comment.submittedBy?.email || 'Anonymous User'}
-                  </p>
-                  <span className="text-xs text-slate-500 bg-slate-700/40 px-2 py-1 rounded-full">just now</span>
-                </div>
-                <p className="text-slate-400 text-sm leading-relaxed group-hover/comment:text-slate-300 transition-colors break-words">
-                  {comment.text}
-                </p>
-              </div>
-            </div>
-          </div>
-        ))}
-        {comments.length === 0 && (
-          <div className="text-center py-8 bg-gradient-to-br from-slate-700/30 to-slate-700/10 rounded-xl border-2 border-dashed border-slate-600/50 relative overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(20,184,166,0.1)_0%,_transparent_70%)]"></div>
-            <MessageSquare className="w-8 h-8 md:w-10 md:h-10 text-slate-600 mx-auto mb-3 relative z-10" />
-            <p className="text-slate-500 text-sm font-medium relative z-10">No comments yet</p>
-            <p className="text-slate-600 text-xs mt-1 px-4 relative z-10">Be the first to share your thoughts!</p>
-          </div>
-        )}
-      </div>
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #14b8a6; border-radius: 4px; }
+      `}</style>
     </div>
-  )}
-
-  <style jsx>{`
-    .custom-scrollbar {
-      scrollbar-width: thin;
-      scrollbar-color: rgba(20, 184, 166, 0.8) transparent;
-    }
-    
-    .custom-scrollbar::-webkit-scrollbar {
-      width: 6px;
-    }
-    
-    .custom-scrollbar::-webkit-scrollbar-track {
-      background: rgba(71, 85, 105, 0.1);
-      border-radius: 3px;
-    }
-    
-    .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: linear-gradient(to bottom, rgb(20 184 166), rgb(6 182 212));
-      border-radius: 3px;
-      border: 1px solid rgba(20, 184, 166, 0.3);
-    }
-    
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: linear-gradient(to bottom, rgb(13 148 136), rgb(8 145 178));
-    }
-    
-    .shadow-3xl {
-      box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(71, 85, 105, 0.1);
-    }
-
-    @media (max-width: 640px) {
-      .break-words {
-        word-break: break-word;
-        overflow-wrap: break-word;
-      }
-    }
-
-    /* Performance optimized animations */
-    @media (prefers-reduced-motion: reduce) {
-      * {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-      }
-    }
-  `}</style>
-</div>
   );
-};
+});
 
-// The main page component
 export default function HomePage() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [reports, setReports] = useState<Report[]>([]);
+  const [filteredReports, setFilteredReports] = useState<Report[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isReportLoading, setIsReportLoading] = useState(true);
+  
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  const [filterPriority, setFilterPriority] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('newest');
 
   const fetchReports = useCallback(async () => {
-    // No need to set loading true here if we want a silent refresh
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reports`);
       if (!response.ok) throw new Error('Failed to fetch reports');
@@ -369,182 +362,133 @@ export default function HomePage() {
     } catch (err) {
       setError('Could not load reports.');
     } finally {
-      setIsReportLoading(false); // Only set loading false on the initial load
+      setIsReportLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    let filtered = [...reports];
+
+    if (debouncedSearchTerm) {
+      const lowercasedTerm = debouncedSearchTerm.toLowerCase();
+      filtered = filtered.filter(report => 
+        report.description.toLowerCase().includes(lowercasedTerm) ||
+        report.category.toLowerCase().includes(lowercasedTerm)
+      );
+    }
+    if (filterPriority !== 'all') {
+      filtered = filtered.filter(report => report.priority.toLowerCase() === filterPriority);
+    }
+    if (filterStatus !== 'all') {
+      filtered = filtered.filter(report => report.status === filterStatus);
+    }
+    
+    filtered.sort((a, b) => {
+      const priorityOrder = { 'High': 3, 'Medium': 2, 'Low': 1 };
+      switch (sortBy) {
+        case 'newest': return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case 'oldest': return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case 'most-upvoted': return b.upvoteCount - a.upvoteCount;
+        case 'most-commented': return b.commentCount - a.commentCount;
+        case 'priority': return priorityOrder[b.priority] - priorityOrder[a.priority];
+        default: return 0;
+      }
+    });
+
+    setFilteredReports(filtered);
+  }, [reports, debouncedSearchTerm, filterPriority, filterStatus, sortBy]);
 
   useEffect(() => {
     fetchReports();
   }, [fetchReports]);
 
   if (isAuthLoading || isReportLoading) {
-    return <main className="bg-slate-900 min-h-screen flex items-center justify-center text-white p-4 relative overflow-hidden">
-      {/* Animated background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 via-transparent to-purple-900/10 animate-pulse"></div>
-      
-      {/* Loading content */}
-      <div className="relative z-10 flex flex-col items-center space-y-6">
-        {/* Spinner */}
-        <div className="relative">
-          <div className="w-16 h-16 border-4 border-slate-700 border-t-blue-500 rounded-full animate-spin"></div>
-          <div className="absolute top-2 left-2 w-12 h-12 border-4 border-slate-800 border-t-purple-500 rounded-full animate-spin" style={{animationDirection: 'reverse'}}></div>
+    return (
+      <main className="bg-slate-900 min-h-screen flex items-center justify-center text-white p-4">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-16 h-16 border-4 border-slate-700 border-t-teal-500 rounded-full animate-spin"></div>
+          <h1 className="text-xl font-light tracking-wide text-slate-300">Loading Community Reports...</h1>
         </div>
-        
-        {/* Text */}
-        <div className="text-center">
-          <h1 className="text-xl font-light tracking-wide animate-pulse">Loading...</h1>
-        </div>
-      </div>
-    </main>
+      </main>
+    );
   }
   
   if (error) {
-    return <main className="bg-slate-900 min-h-screen text-center p-10 text-red-400">{error}</main>;
+    return (
+      <main className="bg-slate-900 min-h-screen flex items-center justify-center text-center p-10">
+        <div className="max-w-md mx-auto">
+          <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/30">
+            <ShieldAlert className="w-8 h-8 text-red-400" />
+          </div>
+          <h2 className="text-xl font-semibold text-red-400 mb-2">Oops! Something went wrong</h2>
+          <p className="text-slate-400 mb-6">{error}</p>
+          <button onClick={() => window.location.reload()} className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-6 py-3 rounded-lg hover:from-teal-400 hover:to-cyan-400 transition-colors">Try Again</button>
+        </div>
+      </main>
+    );
   }
 
   return (
-    <main className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 min-h-screen p-3 sm:p-6 md:p-8 text-slate-100 relative overflow-hidden">
-      {/* Enhanced Background Pattern */}
-      <div className="absolute inset-0 opacity-[0.03]">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `radial-gradient(circle at 2px 2px, rgba(20, 184, 166, 0.4) 1px, transparent 0)`,
-          backgroundSize: '32px 32px'
-        }}></div>
-      </div>
-      
-      {/* Subtle animated background orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-teal-500/5 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-cyan-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-      </div>
-      
-      <div className="max-w-4xl mx-auto relative z-10">
-        <header className="text-center mb-8 sm:mb-12 relative">
-          {/* Icon container with enhanced styling */}
-          <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-teal-400 via-teal-500 to-teal-600 rounded-2xl mb-4 shadow-xl shadow-teal-500/30 border border-teal-400/30 relative overflow-hidden group/icon">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover/icon:opacity-100 transition-opacity duration-300"></div>
-            <svg className="w-8 h-8 sm:w-10 sm:h-10 text-white relative z-10 drop-shadow-sm" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
+    <main className="bg-slate-900 min-h-screen p-3 sm:p-6 md:p-8 text-slate-100">
+      <div className="max-w-6xl mx-auto">
+        <header className="text-center mb-12">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-teal-400 to-teal-600 rounded-3xl mb-6 shadow-lg shadow-teal-500/30 border border-teal-400/30">
+            <MessageSquare className="w-10 h-10 text-white" />
           </div>
+          <h1 className="text-4xl sm:text-6xl font-bold bg-gradient-to-r from-teal-300 to-cyan-400 bg-clip-text text-transparent mb-4">Community Reports</h1>
+          <p className="text-slate-400 text-lg max-w-3xl mx-auto mb-8">Help prioritize what matters most by upvoting and commenting on reports.</p>
           
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-gradient-to-r from-teal-300 via-teal-400 to-cyan-400 bg-clip-text text-transparent mb-3 relative">
-            Community Reports
-            <div className="absolute inset-0 bg-gradient-to-r from-teal-300 via-teal-400 to-cyan-400 bg-clip-text text-transparent blur-sm opacity-50 -z-10">
-              Community Reports
-            </div>
-          </h1>
-          
-          <p className="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed mb-6 bg-slate-800/20 rounded-xl px-4 py-3 backdrop-blur-sm border border-slate-700/30">
-            Upvote issues and join the discussion to make our community better together.
-          </p>
-          
-          <Link href="/resolved" className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500/90 to-emerald-500/90 hover:from-green-500 hover:to-emerald-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-green-500/25 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300 border border-green-400/30 relative overflow-hidden group/resolved">
-            <span className="relative z-10">View Resolved Issues</span>
-            <svg className="w-4 h-4 relative z-10 transition-transform duration-300 group-hover/resolved:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-            <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent translate-x-[-100%] group-hover/resolved:translate-x-[100%] transition-transform duration-500"></div>
-          </Link>
-          
-          <div className="w-24 h-1 bg-gradient-to-r from-teal-400 to-cyan-400 mx-auto mt-6 rounded-full shadow-lg shadow-teal-400/50"></div>
+          <div className="flex justify-center">
+            <Link href="/resolved" className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 text-white font-bold py-3 px-8 text-base rounded-full shadow-lg shadow-green-500/30 hover:shadow-xl hover:shadow-green-500/40 transition-all duration-300 border border-green-400/30 transform hover:scale-105">
+              <CheckCircle size={20} />
+              <span>View Resolved Reports</span>
+            </Link>
+          </div>
         </header>
-        
-        <div className="space-y-4 sm:space-y-6">
-          {reports.map(report => (
-            <div key={report._id} className="group/report">
-              <div className="bg-gradient-to-br from-slate-800/70 via-slate-800/60 to-slate-800/70 backdrop-blur-sm border border-slate-700/60 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xl shadow-slate-900/30 hover:shadow-2xl hover:shadow-slate-900/50 transition-all duration-300 hover:from-slate-800/90 hover:via-slate-800/80 hover:to-slate-800/90 hover:border-slate-600/70 hover:-translate-y-1 relative overflow-hidden">
-                {/* Subtle hover glow */}
-                <div className="absolute inset-0 bg-gradient-to-r from-teal-500/5 to-cyan-500/5 opacity-0 group-hover/report:opacity-100 transition-opacity duration-300 rounded-2xl sm:rounded-3xl"></div>
-                <ReportCard 
-                  key={report._id} 
-                  initialReport={report} 
-                  currentUser={user} 
-                  onUpdate={fetchReports} 
-                />
-              </div>
+
+        <div className="mb-8 p-4 bg-slate-800/50 rounded-2xl border border-slate-700/50 sticky top-4 z-20 backdrop-blur-sm">
+          <div className="flex flex-col lg:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
+              <input type="text" placeholder="Search reports by description or category..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-slate-800 text-slate-200 rounded-xl border border-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow" />
             </div>
+            <div className="flex flex-wrap gap-3">
+              <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className="flex-1 lg:flex-none px-4 py-3 bg-slate-800 text-slate-200 rounded-xl border border-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                <option value="all">All Priorities</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
+              </select>
+              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="flex-1 lg:flex-none px-4 py-3 bg-slate-800 text-slate-200 rounded-xl border border-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                <option value="all">All Statuses</option><option value="open">Open</option><option value="in-progress">In Progress</option>
+              </select>
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="flex-1 lg:flex-none px-4 py-3 bg-slate-800 text-slate-200 rounded-xl border border-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                <option value="newest">Newest</option><option value="oldest">Oldest</option><option value="most-upvoted">Most Upvoted</option><option value="most-commented">Most Commented</option><option value="priority">By Priority</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <div className="space-y-6 sm:space-y-8">
+          {filteredReports.map((report) => (
+            <ReportCard key={report._id} initialReport={report} currentUser={user} onUpdate={fetchReports} />
           ))}
         </div>
         
-        {/* Enhanced Empty State */}
-        {reports.length === 0 && (
-          <div className="text-center py-16 sm:py-24 relative">
-            <div className="w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-6 rounded-full bg-gradient-to-br from-slate-800/80 to-slate-800/60 flex items-center justify-center border border-slate-700/60 shadow-xl relative overflow-hidden group/empty">
-              <div className="absolute inset-0 bg-gradient-to-br from-teal-500/10 to-cyan-500/10 opacity-0 group-hover/empty:opacity-100 transition-opacity duration-500"></div>
-              <svg className="w-10 h-10 sm:w-12 sm:h-12 text-slate-500 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <h3 className="text-xl sm:text-2xl font-semibold text-slate-300 mb-2 bg-gradient-to-r from-slate-300 to-slate-400 bg-clip-text text-transparent">
-              No reports yet
-            </h3>
-            <p className="text-slate-500 max-w-md mx-auto bg-slate-800/30 rounded-lg px-4 py-2 border border-slate-700/30">
-              Be the first to report an issue and help improve our community.
-            </p>
+        {filteredReports.length === 0 && !isReportLoading && (
+          <div className="text-center py-24">
+             <Filter className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+             <h3 className="text-2xl font-semibold text-slate-300">No Reports Found</h3>
+             <p className="text-slate-500 mt-2">Try adjusting your search or filter settings.</p>
           </div>
         )}
       </div>
       
-      {/* Enhanced Floating Action Button */}
       {user && (
-        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 md:bottom-8 md:right-8 z-50">
-          <Link 
-            href="/report" 
-            className="group/fab relative inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-teal-500 via-teal-400 to-teal-600 hover:from-teal-400 hover:via-teal-300 hover:to-teal-500 text-white font-bold rounded-2xl sm:rounded-3xl shadow-2xl shadow-teal-500/40 transition-all duration-300 hover:scale-110 hover:shadow-3xl hover:shadow-teal-500/50 active:scale-105 border border-teal-400/30 overflow-hidden"
-          >
-            {/* Enhanced pulse effect */}
-            <div className="absolute inset-0 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-teal-300/30 to-cyan-300/30 opacity-0 group-hover/fab:opacity-100 transition-opacity duration-300"></div>
-            
-            {/* Animated background shimmer */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover/fab:translate-x-[100%] transition-transform duration-700"></div>
-            
-            {/* Plus icon */}
-            <Plus size={24} className="sm:w-7 sm:h-7 relative z-10 transition-all duration-300 group-hover/fab:rotate-90 drop-shadow-sm" />
-            
-            {/* Enhanced Tooltip */}
-            <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-2 bg-gradient-to-r from-slate-800/95 to-slate-700/95 backdrop-blur-sm text-slate-200 text-sm font-medium rounded-lg opacity-0 group-hover/fab:opacity-100 transition-all duration-200 whitespace-nowrap shadow-xl border border-slate-600/50 pointer-events-none">
-              Create Report
-              <div className="absolute left-full top-1/2 -translate-y-1/2 w-0 h-0 border-l-4 border-l-slate-800 border-y-4 border-y-transparent"></div>
-            </div>
+        <div className="fixed bottom-6 right-6 z-50">
+          <Link href="/report" className="group flex items-center justify-center w-16 h-16 bg-gradient-to-br from-teal-500 to-cyan-500 text-white rounded-full shadow-lg shadow-teal-500/30 transition-transform duration-300 hover:scale-110 active:scale-95">
+            <div className="absolute -inset-2 border-2 border-teal-400/30 rounded-full animate-pulse"></div>
+            <Plus size={28} className="relative z-10 transition-transform duration-300 group-hover:rotate-90" />
           </Link>
         </div>
       )}
-      
-      {/* Enhanced Bottom gradient fade */}
-      <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-900 via-slate-900/50 to-transparent pointer-events-none z-10"></div>
-      
-      <style jsx>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-10px) rotate(1deg); }
-        }
-        
-        .group\\/fab:hover {
-          animation: float 2s ease-in-out infinite;
-        }
-        
-        /* Performance optimized animations */
-        @media (prefers-reduced-motion: reduce) {
-          * {
-            animation-duration: 0.01ms !important;
-            animation-iteration-count: 1 !important;
-            transition-duration: 0.01ms !important;
-          }
-          
-          .group\\/fab:hover {
-            animation: none !important;
-          }
-        }
-        
-        /* Enhanced shadow for 3xl */
-        .shadow-3xl {
-          box-shadow: 
-            0 35px 60px -12px rgba(0, 0, 0, 0.8),
-            0 0 0 1px rgba(20, 184, 166, 0.1),
-            0 4px 16px rgba(20, 184, 166, 0.2);
-        }
-      `}</style>
     </main>
   );
 }
