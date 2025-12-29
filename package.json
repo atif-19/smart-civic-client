@@ -9,12 +9,13 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@sendinblue/client": "^3.3.1",
     "@types/leaflet": "^1.9.20",
     "@types/leaflet.heat": "^0.2.5",
     "leaflet": "^1.9.4",
     "leaflet.heat": "^0.2.0",
     "lucide-react": "^0.542.0",
-    "next": "15.5.2",
+    "next": "^15.5.2",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-leaflet": "^5.0.0",
