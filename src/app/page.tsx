@@ -223,120 +223,144 @@ const userHasConfirmed = currentUser && report.confirmIssue ? report.confirmIssu
 
   }
   return (
-    <div className="bg-gradient-to-br from-slate-800/80 via-slate-800/70 to-slate-900/80 backdrop-blur-sm rounded-3xl p-5 md:p-8 border border-slate-700/50 hover:border-slate-600/70 transition-[transform,border-color] duration-300 group relative transform hover:-translate-y-1">
-      <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 relative z-10">
-        {/* LEFT SIDE: UPVOTE */}
-        <div className="flex flex-row sm:flex-col items-center justify-start sm:justify-center gap-4 order-2 sm:order-1">
-          <button onClick={handleUpvote} disabled={!currentUser} className="relative p-4 rounded-2xl transition-transform duration-300 disabled:cursor-not-allowed hover:scale-110 active:scale-95">
-            <div className={`absolute inset-0 rounded-2xl transition-colors duration-300 ${userHasUpvoted ? 'bg-gradient-to-br from-teal-500 to-cyan-500' : 'bg-slate-700/80 border border-slate-600/30'}`}></div>
-            <ThumbsUp className={`relative z-10 w-6 h-6 transition-colors duration-300 ${userHasUpvoted ? 'text-white' : 'text-slate-400'}`} />
-          </button>
-          <span className="font-bold text-xl text-white bg-slate-800/90 px-4 py-3 rounded-2xl min-w-[4rem] text-center border border-slate-600/40">{report.upvoteCount || 0}</span>
+  <div className="group bg-white dark:bg-slate-900 rounded-3xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-none transition-all duration-300 w-full max-w-4xl mx-auto mb-6">
+    <div className="flex flex-col md:flex-row">
+      {/* IMAGE SECTION */}
+      <div className="relative w-full md:w-[280px] lg:w-[320px] aspect-[4/3] md:aspect-square overflow-hidden flex-shrink-0">
+        {!imageLoaded && (
+          <div className="absolute inset-0 bg-slate-100 dark:bg-slate-800 animate-pulse" />
+        )}
+        <img 
+          src={report.imageUrl} 
+          alt={report.category} 
+          onLoad={() => setImageLoaded(true)}
+          className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`} 
+        />
+        <div className="absolute top-3 left-3 flex flex-col gap-2">
+          <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-sm border border-white/20">
+            <PriorityBadge priority={report.priority} />
+          </div>
         </div>
-        
-        <div className="flex-1 min-w-0 order-1 sm:order-2 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="text-sm font-bold bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-4 py-2 rounded-full border border-teal-400/30">{initialReport.parentCategory} / {initialReport.category}</span>
-              <StatusBadge status={report.status} />
-            </div>
+        <div className="absolute bottom-3 left-3">
+          <div className="bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 shadow-lg">
+            <ShieldCheck size={12} fill="white" />
+            {report.confirmIssue?.length || 0} VERIFIED
+          </div>
+        </div>
+      </div>
 
-            {/* NEW GREEN CONFIRM BUTTON ON THE RIGHT */}
-            <div className="flex items-center gap-2 ml-auto">
-              <div className="flex items-center gap-2 bg-slate-800/50 p-1.5 rounded-2xl border border-slate-700/50 shadow-inner">
-                <span className="text-[10px] font-bold text-emerald-400 px-2 uppercase tracking-tight">
-                  {report.confirmIssue?.length || 0} Confirmed
-                </span>
-                <button 
-                  onClick={handleConfirm} 
-                  disabled={!currentUser}
-                  className={`p-2.5 rounded-xl transition-all duration-300 transform active:scale-90 ${
-                    userHasConfirmed 
-                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/40 scale-105' 
-                    : 'bg-slate-700 text-slate-400 hover:text-emerald-400 hover:bg-slate-600'
-                  }`}
-                >
-                  <ShieldCheck size={18} fill={userHasConfirmed ? "currentColor" : "none"} />
-                </button>
-              </div>
+      {/* CONTENT SECTION */}
+      <div className="flex-1 p-5 md:p-6 flex flex-col justify-between">
+        <div>
+          <div className="flex items-start justify-between mb-3">
+            <div className="space-y-1">
+              <p className="text-[11px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider">
+                {initialReport.parentCategory} • {initialReport.category}
+              </p>
+              <h3 className="text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100 line-clamp-1">
+                {report.description}
+              </h3>
             </div>
+            <StatusBadge status={report.status} />
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <PriorityBadge priority={report.priority} />
-            <DepartmentBadge responsibleDepartment={report.responsibleDepartment} />
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <User size={12} />
-              <span className="truncate max-w-32">{report.submittedBy?.email || 'Anonymous'}</span>
+          <div className="flex flex-wrap items-center gap-y-2 gap-x-4 mb-4 text-slate-500 dark:text-slate-400">
+            <div className="flex items-center gap-1.5 text-xs font-medium">
+               <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] text-slate-600">
+                 {report.submittedBy?.email?.[0].toUpperCase() || 'A'}
+               </div>
+               <span className="truncate max-w-[120px]">{report.submittedBy?.email || 'Anonymous'}</span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <Calendar size={12} />
+            <div className="flex items-center gap-1 text-xs">
+              <Calendar size={14} className="opacity-70" />
               <span>{formatTimeAgo(report.createdAt)}</span>
             </div>
-          </div>
-    
-          <p className="text-slate-200 leading-relaxed text-sm bg-slate-700/20 rounded-2xl px-6 py-4 border border-slate-700/40">{report.description}</p>
-          
-          <div className="relative w-full overflow-hidden rounded-2xl bg-slate-800/80 p-2 border border-slate-600/30">
-            <div className="overflow-hidden rounded-xl">
-              {!imageLoaded && <div className="w-full h-48 sm:h-56 md:h-64 bg-slate-700 animate-pulse"></div>}
-              <img src={report.imageUrl} alt={report.category} onLoad={() => setImageLoaded(true)} className={`w-full h-48 sm:h-56 md:h-64 object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`} />
+            <div className="hidden sm:flex items-center gap-1 text-xs">
+              <DepartmentBadge responsibleDepartment={report.responsibleDepartment} />
             </div>
           </div>
-          
-          <div className="flex items-center justify-between">
-            <button onClick={toggleComments} className="flex items-center gap-3 text-sm text-slate-400 hover:text-teal-300 transition-colors duration-300 px-5 py-3 rounded-2xl border border-slate-600/40 hover:border-teal-500/50">
-              <MessageSquare className="w-5 h-5" />
-              <span className="font-medium">{showComments ? 'Hide Comments' : `Comments (${report.commentCount || 0})`}</span>
+
+          <p className="text-slate-600 dark:text-slate-400 text-sm line-clamp-2 leading-relaxed mb-4">
+            {report.description}
+          </p>
+        </div>
+
+        {/* BOTTOM ACTION BAR */}
+        <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-slate-800">
+          <div className="flex items-center gap-6">
+            <button onClick={handleUpvote} className="flex items-center gap-2 group/btn">
+              <div className={`p-2 rounded-full transition-colors ${userHasUpvoted ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 group-hover/btn:bg-blue-50 group-hover/btn:text-blue-500'}`}>
+                <ThumbsUp size={18} fill={userHasUpvoted ? "currentColor" : "none"} />
+              </div>
+              <span className={`text-sm font-bold ${userHasUpvoted ? 'text-blue-600' : 'text-slate-600 dark:text-slate-400'}`}>{report.upvoteCount || 0}</span>
+            </button>
+
+            <button onClick={toggleComments} className="flex items-center gap-2 group/btn">
+              <div className={`p-2 rounded-full transition-colors ${showComments ? 'bg-teal-50 text-teal-600' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 group-hover/btn:bg-teal-50 group-hover/btn:text-teal-500'}`}>
+                <MessageSquare size={18} />
+              </div>
+              <span className="text-sm font-bold text-slate-600 dark:text-slate-400">{report.commentCount || 0}</span>
             </button>
           </div>
-        </div>
-      </div>  
-      {showComments && (
-        <div className="mt-10 pt-8 border-t border-slate-700 relative">
-          {currentUser && (
-            <div className="mb-8">
-              <form onSubmit={handleCommentSubmit} className="flex gap-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-full flex-shrink-0 items-center justify-center flex shadow-lg"><span className="text-white font-bold">{(currentUser.email || 'U')[0].toUpperCase()}</span></div>
-                <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Share your thoughts..." className="w-full bg-slate-700/80 text-slate-200 rounded-2xl px-5 py-4 text-sm border border-slate-600/50 focus:outline-none focus:ring-2 focus:ring-teal-500" disabled={isCommenting} />
-                <button type="submit" className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white font-bold px-6 py-4 rounded-2xl text-sm transition-opacity disabled:opacity-50" disabled={isCommenting}>
-                  {isCommenting ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <span>Post</span>}
-                </button>
-              </form>
-            </div>
-          )}
-          <div className="space-y-4 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
-            {comments.map((comment) => (
-              <div key={comment._id} className="bg-slate-700/60 p-5 rounded-2xl border border-slate-600/40">
-                <div className="flex items-start gap-4">
-                  <div className="w-9 h-9 bg-gradient-to-br from-teal-400 to-cyan-400 rounded-full flex-shrink-0 items-center justify-center flex shadow-lg mt-0.5"><span className="text-white text-xs font-bold">{(comment.submittedBy?.email || 'U')[0].toUpperCase()}</span></div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <p className="font-bold text-slate-300 text-sm truncate">{comment.submittedBy?.email || 'Anonymous'}</p>
-                      <span className="text-xs text-slate-500">{formatTimeAgo(comment.createdAt)}</span>
-                    </div>
-                    <p className="text-slate-400 text-sm">{comment.text}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-            {comments.length === 0 && (
-              <div className="text-center py-12 border-2 border-dashed border-slate-700 rounded-2xl">
-                <MessageSquare className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                <p className="text-slate-500 text-sm font-medium">No comments yet</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
-      <style jsx>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #14b8a6; border-radius: 4px; }
-      `}</style>
+          <button onClick={handleConfirm} className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-bold transition-all ${userHasConfirmed ? 'bg-emerald-500 text-white' : 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:opacity-90'}`}>
+            {userHasConfirmed ? 'Verified' : 'Verify Issue'}
+          </button>
+        </div>
+      </div>
     </div>
-  );
+
+    {/* RESTORED COMMENT SECTION */}
+    {showComments && (
+      <div className="bg-slate-50/50 dark:bg-slate-900/50 p-5 md:p-6 border-t border-slate-100 dark:border-slate-800">
+        {currentUser && (
+          <form onSubmit={handleCommentSubmit} className="flex gap-3 mb-6">
+            <div className="w-8 h-8 rounded-full bg-teal-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+              {(currentUser.email || 'U')[0].toUpperCase()}
+            </div>
+            <div className="flex-1 flex gap-2">
+              <input 
+                type="text" 
+                value={newComment} 
+                onChange={(e) => setNewComment(e.target.value)} 
+                placeholder="Write a comment..." 
+                className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none"
+                disabled={isCommenting}
+              />
+              <button 
+                type="submit" 
+                disabled={isCommenting || !newComment.trim()}
+                className="bg-teal-500 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-teal-600 disabled:opacity-50 transition-colors"
+              >
+                {isCommenting ? '...' : 'Post'}
+              </button>
+            </div>
+          </form>
+        )}
+
+        <div className="space-y-4 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+          {comments.map((comment) => (
+            <div key={comment._id} className="flex gap-3">
+              <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-500 text-xs font-bold shrink-0">
+                {(comment.submittedBy?.email || 'U')[0].toUpperCase()}
+              </div>
+              <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl rounded-tl-none border border-slate-100 dark:border-slate-700 shadow-sm flex-1">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{comment.submittedBy?.email || 'Anonymous'}</span>
+                  <span className="text-[10px] text-slate-400">{formatTimeAgo(comment.createdAt)}</span>
+                </div>
+                <p className="text-sm text-slate-600 dark:text-slate-400">{comment.text}</p>
+              </div>
+            </div>
+          ))}
+          {comments.length === 0 && (
+            <p className="text-center text-slate-400 text-xs py-4">No comments yet. Be the first to share your thoughts!</p>
+          )}
+        </div>
+      </div>
+    )}
+  </div>
+);
 });
 
 export default function HomePage() {
@@ -352,7 +376,7 @@ export default function HomePage() {
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('newest');
-
+  
   const fetchReports = useCallback(async () => {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reports`);
@@ -403,92 +427,268 @@ export default function HomePage() {
   }, [fetchReports]);
 
   if (isAuthLoading || isReportLoading) {
-    return (
-      <main className="bg-slate-900 min-h-screen flex items-center justify-center text-white p-4">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="w-16 h-16 border-4 border-slate-700 border-t-teal-500 rounded-full animate-spin"></div>
-          <h1 className="text-xl font-light tracking-wide text-slate-300">Loading Community Reports...</h1>
+   return (
+  <main className="bg-slate-50 dark:bg-[#0b0f1a] min-h-screen p-4 md:p-8">
+    {/* TOP LOADING INDICATOR */}
+    <div className="max-w-4xl mx-auto mb-8 flex items-center justify-between">
+      <div className="space-y-2">
+        <div className="h-8 w-48 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
+        <div className="h-4 w-32 bg-slate-100 dark:bg-slate-800/50 rounded-md animate-pulse" />
+      </div>
+      <div className="flex items-center gap-3">
+        <span className="text-xs font-medium text-slate-400 animate-pulse">Syncing Data</span>
+        <div className="relative flex h-3 w-3">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-teal-500"></span>
         </div>
-      </main>
-    );
-  }
-  
-  if (error) {
-    return (
-      <main className="bg-slate-900 min-h-screen flex items-center justify-center text-center p-10">
-        <div className="max-w-md mx-auto">
-          <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/30">
-            <ShieldAlert className="w-8 h-8 text-red-400" />
+      </div>
+    </div>
+
+    {/* SKELETON CARDS - Repeating the Card Structure we built */}
+    <div className="space-y-6 max-w-4xl mx-auto">
+      {[1, 2, 3].map((i) => (
+        <div 
+          key={i} 
+          className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden border border-slate-100 dark:border-slate-800 flex flex-col md:flex-row w-full animate-shimmer relative"
+        >
+          {/* Mock Image Area */}
+          <div className="w-full md:w-[280px] lg:w-[320px] aspect-[4/3] md:aspect-square bg-slate-200 dark:bg-slate-800" />
+
+          {/* Mock Content Area */}
+          <div className="flex-1 p-6 space-y-4">
+            <div className="flex justify-between items-start">
+              <div className="space-y-3 w-full">
+                {/* Category line */}
+                <div className="h-3 w-24 bg-slate-100 dark:bg-slate-800 rounded" />
+                {/* Title line */}
+                <div className="h-6 w-3/4 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+              </div>
+              {/* Status Badge */}
+              <div className="h-6 w-20 bg-slate-100 dark:bg-slate-800 rounded-full" />
+            </div>
+
+            {/* Meta tags line */}
+            <div className="flex gap-4">
+              <div className="h-4 w-16 bg-slate-100 dark:bg-slate-800 rounded" />
+              <div className="h-4 w-16 bg-slate-100 dark:bg-slate-800 rounded" />
+            </div>
+
+            {/* Description lines */}
+            <div className="space-y-2 pt-2">
+              <div className="h-3 w-full bg-slate-50 dark:bg-slate-800/50 rounded" />
+              <div className="h-3 w-5/6 bg-slate-50 dark:bg-slate-800/50 rounded" />
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="flex justify-between items-center pt-6 border-t border-slate-50 dark:border-slate-800">
+              <div className="flex gap-4">
+                <div className="h-8 w-12 bg-slate-100 dark:bg-slate-800 rounded-xl" />
+                <div className="h-8 w-12 bg-slate-100 dark:bg-slate-800 rounded-xl" />
+              </div>
+              <div className="h-10 w-28 bg-slate-200 dark:bg-slate-800 rounded-2xl" />
+            </div>
           </div>
-          <h2 className="text-xl font-semibold text-red-400 mb-2">Oops! Something went wrong</h2>
-          <p className="text-slate-400 mb-6">{error}</p>
-          <button onClick={() => window.location.reload()} className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-6 py-3 rounded-lg hover:from-teal-400 hover:to-cyan-400 transition-colors">Try Again</button>
+          
+          {/* Shimmer Overlay Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 dark:via-slate-800/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
         </div>
-      </main>
-    );
+      ))}
+    </div>
+
+    <style jsx>{`
+      @keyframes shimmer {
+        100% { transform: translateX(100%); }
+      }
+    `}</style>
+  </main>
+);
+  }
+  let forceError = false; // Set to true to test error UI
+  if (forceError || error) {
+    return (
+  <main className="bg-white dark:bg-[#0b0f1a] min-h-screen flex items-center justify-center p-6">
+    <div className="max-w-md w-full text-center">
+      {/* ILLUSTRAION AREA */}
+      <div className="relative mb-8">
+        {/* Decorative Background Glow */}
+        <div className="absolute inset-0 bg-orange-400/10 dark:bg-orange-500/5 blur-3xl rounded-full" />
+        
+        {/* Icon Container */}
+        <div className="relative w-24 h-24 bg-orange-50 dark:bg-orange-500/10 rounded-3xl flex items-center justify-center mx-auto border border-orange-100 dark:border-orange-500/20 rotate-3 hover:rotate-0 transition-transform duration-300">
+          <ShieldAlert className="w-12 h-12 text-orange-500" strokeWidth={1.5} />
+        </div>
+      </div>
+
+      {/* TEXT CONTENT */}
+      <h2 className="text-2xl md:text-3xl font-extrabold text-slate-800 dark:text-slate-100 mb-3 tracking-tight">
+        Unexpected Detour
+      </h2>
+      <p className="text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
+        {error || "We're having trouble connecting to the city servers. Please check your connection and try again."}
+      </p>
+
+      {/* ACTION BUTTONS */}
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+        <button 
+          onClick={() => window.location.reload()} 
+          className="w-full sm:w-auto px-8 py-3.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg shadow-slate-200 dark:shadow-none"
+        >
+          Try Again
+        </button>
+        
+        <button 
+          onClick={() => window.location.href = '/'}
+          className="w-full sm:w-auto px-8 py-3.5 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl font-bold hover:bg-slate-100 dark:hover:bg-slate-700 transition-all"
+        >
+          Go Home
+        </button>
+      </div>
+
+      {/* SUBTLE BRANDING */}
+      <p className="mt-12 text-xs font-bold text-slate-300 dark:text-slate-600 uppercase tracking-[0.2em]">
+        Civic Catalyst • Urban Intelligence
+      </p>
+    </div>
+  </main>
+);
   }
 
   return (
-    <main className="bg-slate-900 min-h-screen p-3 sm:p-6 md:p-8 text-slate-100">
-      <div className="max-w-6xl mx-auto">
-        <header className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-teal-400 to-teal-600 rounded-3xl mb-6 shadow-lg shadow-teal-500/30 border border-teal-400/30">
-            <MessageSquare className="w-10 h-10 text-white" />
+  <main className="bg-slate-50 dark:bg-[#0b0f1a] min-h-screen transition-colors duration-300">
+    <div className="max-w-4xl mx-auto px-4">
+     {/* 1. HERO SECTION: Smooth scale and fade without snapping */}
+      <div 
+        className="py-16 md:py-24 lg:py-32 text-center"
+      >
+        <header className="text-center max-w-4xl mx-auto px-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-white dark:bg-slate-900 rounded-3xl mb-6 shadow-xl border border-slate-200 dark:border-slate-800 transform -rotate-3 hover:rotate-0 transition-transform duration-300">
+            <MessageSquare className="w-8 h-8 text-teal-500" />
           </div>
-          <h1 className="text-4xl sm:text-6xl font-bold bg-gradient-to-r from-teal-300 to-cyan-400 bg-clip-text text-transparent mb-4">Community Reports</h1>
-          <p className="text-slate-400 text-lg max-w-3xl mx-auto mb-8">Help prioritize what matters most by upvoting and commenting on reports.</p>
-          
+          <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight mb-4">
+            Community <span className="text-teal-500">Reports</span>
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 text-lg max-w-xl mx-auto mb-8 leading-relaxed">
+            Help prioritize what matters most by upvoting and commenting on real-time civic reports.
+          </p>
           <div className="flex justify-center">
-            <Link href="/resolved" className="inline-flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 text-white font-bold py-3 px-8 text-base rounded-full shadow-lg shadow-green-500/30 hover:shadow-xl hover:shadow-green-500/40 transition-all duration-300 border border-green-400/30 transform hover:scale-105">
-              <CheckCircle size={20} />
+            <Link href="/resolved" className="inline-flex items-center gap-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold py-3.5 px-8 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 hover:shadow-md transition-all active:scale-95">
+              <CheckCircle size={18} className="text-emerald-500" />
               <span>View Resolved Reports</span>
             </Link>
           </div>
         </header>
+      </div>
 
-        <div className="mb-8 p-4 bg-slate-800/50 rounded-2xl border border-slate-700/50 sticky top-4 z-20 backdrop-blur-sm">
-          <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
-              <input type="text" placeholder="Search reports by description or category..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-slate-800 text-slate-200 rounded-xl border border-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-shadow" />
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} className="flex-1 lg:flex-none px-4 py-3 bg-slate-800 text-slate-200 rounded-xl border border-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500">
-                <option value="all">All Priorities</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
-              </select>
-              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="flex-1 lg:flex-none px-4 py-3 bg-slate-800 text-slate-200 rounded-xl border border-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500">
-                <option value="all">All Statuses</option><option value="open">Open</option><option value="in-progress">In Progress</option>
-              </select>
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="flex-1 lg:flex-none px-4 py-3 bg-slate-800 text-slate-200 rounded-xl border border-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500">
-                <option value="newest">Newest</option><option value="oldest">Oldest</option><option value="most-upvoted">Most Upvoted</option><option value="most-commented">Most Commented</option><option value="priority">By Priority</option>
-              </select>
-            </div>
-          </div>
-        </div>
+
+
+
+{/* 2. SEARCH AND FILTERS - Simple, No Sticky */}
+<div className="-mx-4 px-4 py-4 bg-transparent">
+  <div className="max-w-4xl mx-auto space-y-3">
+    
+    {/* Search Bar Row */}
+    <div className="flex items-center gap-3">
+      <div className="relative flex-1 group">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+        <input 
+          type="text" 
+          placeholder="Search issues, categories..." 
+          value={searchTerm} 
+          onChange={(e) => setSearchTerm(e.target.value)} 
+          className="w-full pl-10 pr-4 py-3.5 bg-white dark:bg-slate-800 shadow-md border border-slate-100 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-teal-500/50 text-sm outline-none"
+        />
+      </div>
+
+      <button 
+        className="p-3 rounded-xl bg-white dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700 hover:border-teal-500/50 transition-colors flex items-center gap-2"
+      >
+        <Filter size={18} />
+        <span className="text-xs font-bold hidden sm:block text-slate-600 dark:text-slate-300">Filters</span>
+      </button>
+    </div>
+
+    {/* Filter Bar */}
+    <div className="relative">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
+        <select 
+          value={filterPriority} 
+          onChange={(e) => setFilterPriority(e.target.value)}
+          className="flex-shrink-0 text-[10px] font-black uppercase tracking-widest bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-xl outline-none hover:border-teal-500/50 transition-colors"
+        >
+          <option value="all">Priority</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+
+        <select 
+          value={filterStatus} 
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="flex-shrink-0 text-[10px] font-black uppercase tracking-widest bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-xl outline-none hover:border-teal-500/50 transition-colors"
+        >
+          <option value="all">Status</option>
+          <option value="open">Open</option>
+          <option value="in-progress">In Progress</option>
+        </select>
+
+        <select 
+          value={sortBy} 
+          onChange={(e) => setSortBy(e.target.value)}
+          className="flex-shrink-0 text-[10px] font-black uppercase tracking-widest bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-xl outline-none hover:border-teal-500/50 transition-colors"
+        >
+          <option value="newest">Newest</option>
+          <option value="most-upvoted">Popular</option>
+          <option value="priority">Rank</option>
+        </select>
+        <div className="flex-shrink-0 w-12 h-1" />
+      </div>
+      <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-slate-50 dark:from-[#0b0f1a] to-transparent pointer-events-none" />
+    </div>
+  </div>
+</div>
+      {/* 3. REPORTS LIST: Clean vertical stack */}
+      <div className="mt-8 pb-24 space-y-4">
+        {filteredReports.map((report) => (
+          <ReportCard key={report._id} initialReport={report} currentUser={user} onUpdate={fetchReports} />
+        ))}
         
-        <div className="space-y-6 sm:space-y-8">
-          {filteredReports.map((report) => (
-            <ReportCard key={report._id} initialReport={report} currentUser={user} onUpdate={fetchReports} />
-          ))}
-        </div>
-        
+        {/* Modern Empty State */}
         {filteredReports.length === 0 && !isReportLoading && (
-          <div className="text-center py-24">
-             <Filter className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-             <h3 className="text-2xl font-semibold text-slate-300">No Reports Found</h3>
-             <p className="text-slate-500 mt-2">Try adjusting your search or filter settings.</p>
+          <div className="text-center py-24 bg-white dark:bg-slate-900 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-800">
+             <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800 rounded-3xl flex items-center justify-center mx-auto mb-6">
+               <Filter className="w-10 h-10 text-slate-300" />
+             </div>
+             <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100">No Reports Found</h3>
+             <p className="text-slate-500 mt-2 max-w-xs mx-auto">Try adjusting your search or filter settings to see more reports.</p>
+             <button 
+                onClick={() => {setSearchTerm(''); setFilterPriority('all'); setFilterStatus('all');}} 
+                className="mt-8 text-sm font-black uppercase tracking-widest text-teal-500 hover:text-teal-600 transition-colors"
+             >
+               Reset Filters
+             </button>
           </div>
         )}
       </div>
-      
-      {user && (
-        <div className="fixed bottom-6 right-6 z-50">
-          <Link href="/report" className="group flex items-center justify-center w-16 h-16 bg-gradient-to-br from-teal-500 to-cyan-500 text-white rounded-full shadow-lg shadow-teal-500/30 transition-transform duration-300 hover:scale-110 active:scale-95">
-            <div className="absolute -inset-2 border-2 border-teal-400/30 rounded-full animate-pulse"></div>
-            <Plus size={28} className="relative z-10 transition-transform duration-300 group-hover:rotate-90" />
-          </Link>
-        </div>
-      )}
-    </main>
-  );
+    </div>
+    
+    {/* 4. FLOATING ACTION BUTTON (FAB) */}
+    {user && (
+      <div className="fixed bottom-8 right-6 z-50">
+        <Link 
+          href="/report" 
+          className="flex items-center gap-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 py-4 rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-all group"
+        >
+          <Plus size={24} className="group-hover:rotate-90 transition-transform duration-300" />
+          <span className="font-black text-xs uppercase tracking-widest hidden md:block">New Report</span>
+        </Link>
+      </div>
+    )}
+
+    {/* Custom CSS to hide scrollbars globally for this page */}
+    <style jsx global>{`
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    `}</style>
+  </main>
+);
 }
